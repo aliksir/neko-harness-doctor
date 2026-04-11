@@ -1,0 +1,23 @@
+{
+  "name": "neko-harness-doctor",
+  "version": "0.2.3",
+  "description": "Diagnose Claude Code harness (CLAUDE.md, settings.json, .mcp.json, hooks, skills, memory, MCP, workflow) against 25 anti-pattern indicators. Outputs S-E grade, per-category scores, violation list with evidence citations, and prioritized Quick Wins.",
+  "author": {
+    "name": "aliksir",
+    "url": "https://github.com/aliksir"
+  },
+  "homepage": "https://github.com/aliksir/neko-harness-doctor#readme",
+  "repository": "https://github.com/aliksir/neko-harness-doctor",
+  "license": "MIT",
+  "keywords": [
+    "claude",
+    "claude-code",
+    "harness",
+    "audit",
+    "diagnostic",
+    "anti-pattern",
+    "prompt-caching",
+    "kv-cache",
+    "cli"
+  ]
+}
