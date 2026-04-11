@@ -14,7 +14,7 @@
   "scripts": {
     "start": "node src/audit.mjs",
     "audit": "node src/audit.mjs",
-    "test": "echo \"Tests pending (Phase D)\" && exit 0",
+    "test": "node --test test/test.mjs",
     "lint": "echo \"Lint pending (Phase D)\" && exit 0"
   },
   "keywords": [

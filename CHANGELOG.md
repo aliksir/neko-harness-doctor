@@ -7,8 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **CI workflow** (`.github/workflows/ci.yml`): matrix-tests against Node 18/20/22 on both `ubuntu-latest` and `windows-latest`. Windows runner is intentional — it guards against CRLF regressions like the one fixed in v0.2.0.
+- **Test suite** (`test/test.mjs`): uses Node.js built-in `node:test` runner (zero new dependencies). Covers:
+  - `parseFrontmatter` regression cases (LF, CRLF, mixed, empty, quoted) — pins down the v0.1.0 Windows bug.
+  - `audit.mjs` CLI smoke tests (`--help`, `-h`, nonexistent target, minimal workspace JSON output).
+- `package.json`: `test` script now runs `node --test test/test.mjs` instead of a placeholder.
+
 ### Planned (v0.3.0)
-- CI workflow (lint + smoke test via GitHub Actions)
+- Lint workflow (ESLint)
 - Test fixture suite covering all 25 indicators
 - User-defined indicator support
 - `npm publish` to the public registry
@@ -62,7 +69,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Notes
 - Origin: extracted from internal `harness-doctor` skill (v0.1.0) used inside the aliksir/neko-gundan project
-- Independently derived from masa_wunder's `/review-harness` concept (paid article not subscribed)
 
 [Unreleased]: https://github.com/aliksir/neko-harness-doctor/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/aliksir/neko-harness-doctor/releases/tag/v0.1.0

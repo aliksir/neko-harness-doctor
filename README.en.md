@@ -43,8 +43,6 @@ Manually checking each of these is tedious. This tool does all 25 checks in 5–
 npm install -g @aliksir/neko-harness-doctor
 ```
 
-*Note: npm publish is pending. Use GitHub clone for now.*
-
 ### GitHub clone
 
 ```bash
@@ -164,9 +162,6 @@ See [docs/configuration.md](./docs/configuration.md) for details.
 
 ## FAQ
 
-**Q: Is this a copy of masa_wunder's `/review-harness`?**
-A: No. We did not subscribe to the paid article. The 25 indicators are independently derived from Anthropic official docs, OpenSSF, IEEE standards, and similar public best practices.
-
 **Q: Does it call any LLM?**
 A: No. All judgments are grep / AST / JSON-parse based — fully deterministic.
 
@@ -182,7 +177,7 @@ A: Zero. Only Node.js 18+ stdlib.
 
 ## Acknowledgments
 
-- **masa_wunder** (@masa_wunder) — conceptual inspiration for `/review-harness` (paid article not subscribed; indicators derived independently)
 - **Liu et al. 2023** "Lost in the Middle" (arXiv:2307.03172) — basis for IND-03
 - **Anthropic Prompt Caching Guide** — basis for IND-01/02/05
 - **OpenSSF Secure Supply Chain Best Practices** — basis for IND-20/22
+- **IEEE peer review standard / Four Eyes Principle** — basis for IND-25
