@@ -1,0 +1,13 @@
+#!/usr/bin/env node
+// neko-harness-doctor CLI entry point
+// Delegates to src/audit.mjs
+
+import { fileURLToPath } from 'url';
+import { dirname, resolve } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const auditPath = resolve(__dirname, '..', 'src', 'audit.mjs');
+
+// Dynamic import to run the CLI with current argv
+await import(auditPath);

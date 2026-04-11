@@ -1,0 +1,56 @@
+{
+  "name": "@aliksir/neko-harness-doctor",
+  "version": "0.1.0",
+  "description": "Diagnose Claude Code harness (CLAUDE.md, settings.json, .mcp.json, hooks, skills, memory, MCP, workflow) against 25 anti-pattern indicators. Outputs S-E grade and prioritized Quick Wins with interactive fix proposals.",
+  "type": "module",
+  "bin": {
+    "neko-harness-doctor": "./bin/neko-harness-doctor"
+  },
+  "exports": {
+    "./indicators": "./src/indicators/index.mjs",
+    "./grading": "./src/grading.mjs",
+    "./fix-strategies": "./src/fix-strategies.mjs"
+  },
+  "scripts": {
+    "start": "node src/audit.mjs",
+    "audit": "node src/audit.mjs",
+    "test": "echo \"Tests pending (Phase D)\" && exit 0",
+    "lint": "echo \"Lint pending (Phase D)\" && exit 0"
+  },
+  "keywords": [
+    "claude",
+    "claude-code",
+    "harness",
+    "audit",
+    "diagnostic",
+    "anti-pattern",
+    "prompt-caching",
+    "kv-cache",
+    "cli"
+  ],
+  "author": "aliksir",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/aliksir/neko-harness-doctor.git"
+  },
+  "homepage": "https://github.com/aliksir/neko-harness-doctor#readme",
+  "bugs": {
+    "url": "https://github.com/aliksir/neko-harness-doctor/issues"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "files": [
+    "src/",
+    "bin/",
+    "docs/",
+    "README.md",
+    "README.en.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
+}

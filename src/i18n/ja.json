@@ -1,0 +1,51 @@
+{
+  "cli": {
+    "usage": "使い方: node src/audit.mjs [オプション]\n\nオプション:\n  --target <path>       診断対象ディレクトリ（デフォルト: ~/.claude/）\n  --workspace <path>    plans/checklist/rules等を探す作業ディレクトリ（デフォルト: .）\n  --format <fmt>        出力形式 json|markdown（デフォルト: markdown）\n  --category <name>     特定カテゴリのみ: claude-md|settings|hooks|skills|memory|mcp|workflow\n  --severity <level>    最小Severity critical|major|minor（デフォルト: minor）\n  --top <n>             Quick Wins の上位件数（デフォルト: 5）\n  --fix-mode <mode>     修正提案モード: off|propose（デフォルト: off）\n  --lang <lang>         出力言語 ja|en（デフォルト: ja）\n  --quiet               違反のみ表示\n  --help                このヘルプ\n\n環境変数:\n  NEKO_HARNESS_WORKSPACE  --workspace のフォールバック\n\n終了コード:\n  0 - 診断完了\n  1 - 診断対象が見つからない\n  2 - 内部エラー\n"
+  },
+  "grade": {
+    "title": "neko-harness-doctor 診断結果",
+    "target": "対象",
+    "gradeLabel": "総合グレード",
+    "passRate": "PASS率",
+    "criticals": "Critical違反",
+    "executedAt": "実行時刻",
+    "demoted": "基本 {base} から Critical {criticals}件で {demotion}段降格"
+  },
+  "categoryScore": {
+    "title": "カテゴリ別スコア",
+    "headers": ["カテゴリ", "PASS/指標", "Critical", "Major", "Minor"],
+    "names": {
+      "claude-md": "CLAUDE.md構造",
+      "settings": "settings.json",
+      "hooks": "Hooks",
+      "skills": "Skills",
+      "memory": "Memory",
+      "mcp": "MCP",
+      "workflow": "Workflow"
+    }
+  },
+  "violations": {
+    "title": "検出された問題",
+    "none": "**違反なし**。全指標PASS、改善点なし。",
+    "fields": {
+      "location": "検出箇所",
+      "violation": "違反",
+      "evidence": "出典",
+      "remediation": "修正例",
+      "autoFixable": "自動修正"
+    },
+    "autoFixableTrue": "可（fix-mode=proposeで提案取得）",
+    "autoFixableFalse": "手動のみ"
+  },
+  "quickWins": {
+    "title": "Quick Wins（優先順位）",
+    "suggest": "修正推奨"
+  },
+  "fixProposals": {
+    "title": "修正提案（Fix Proposals）"
+  },
+  "errors": {
+    "targetNotFound": "エラー: 診断対象が見つかりません: {target}",
+    "internalError": "内部エラー: {message}"
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "cli": {
+    "usage": "Usage: node src/audit.mjs [options]\n\nOptions:\n  --target <path>       Target directory (default: ~/.claude/)\n  --workspace <path>    Workspace dir for plans/checklist/rules (default: .)\n  --format <fmt>        Output format: json|markdown (default: markdown)\n  --category <name>     Specific category only: claude-md|settings|hooks|skills|memory|mcp|workflow\n  --severity <level>    Minimum severity: critical|major|minor (default: minor)\n  --top <n>             Top N quick wins (default: 5)\n  --fix-mode <mode>     Fix proposal mode: off|propose (default: off)\n  --lang <lang>         Output language: ja|en (default: ja)\n  --quiet               Show violations only\n  --help                This help message\n\nEnvironment:\n  NEKO_HARNESS_WORKSPACE  Fallback for --workspace\n\nExit codes:\n  0 - Diagnosis complete\n  1 - Target not found\n  2 - Internal error\n"
+  },
+  "grade": {
+    "title": "neko-harness-doctor diagnosis result",
+    "target": "Target",
+    "gradeLabel": "Overall Grade",
+    "passRate": "Pass Rate",
+    "criticals": "Critical Violations",
+    "executedAt": "Executed At",
+    "demoted": "Base {base} demoted by {demotion} level(s) due to {criticals} critical violation(s)"
+  },
+  "categoryScore": {
+    "title": "Category Scores",
+    "headers": ["Category", "PASS/Indicators", "Critical", "Major", "Minor"],
+    "names": {
+      "claude-md": "CLAUDE.md Structure",
+      "settings": "settings.json",
+      "hooks": "Hooks",
+      "skills": "Skills",
+      "memory": "Memory",
+      "mcp": "MCP",
+      "workflow": "Workflow"
+    }
+  },
+  "violations": {
+    "title": "Detected Issues",
+    "none": "**No violations**. All indicators pass, no improvements needed.",
+    "fields": {
+      "location": "Location",
+      "violation": "Violation",
+      "evidence": "Evidence",
+      "remediation": "Remediation",
+      "autoFixable": "Auto-fixable"
+    },
+    "autoFixableTrue": "Yes (use fix-mode=propose to get proposal)",
+    "autoFixableFalse": "Manual only"
+  },
+  "quickWins": {
+    "title": "Quick Wins (prioritized)",
+    "suggest": "Recommended fix"
+  },
+  "fixProposals": {
+    "title": "Fix Proposals"
+  },
+  "errors": {
+    "targetNotFound": "Error: target not found: {target}",
+    "internalError": "Internal error: {message}"
+  }
+}
