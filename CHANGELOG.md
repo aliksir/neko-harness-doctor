@@ -7,18 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Planned (v0.3.0)
+- Lint workflow (ESLint)
+- Test fixture suite covering all 25 indicators
+- User-defined indicator support
+
+## [0.2.1] - 2026-04-12
+
+### Fixed
+- **`bin` entry registration**: the `./` prefix on `bin["neko-harness-doctor"]` was rejected by npm at publish time and the entire bin mapping was stripped from the published v0.2.0 tarball, leaving `npm install -g @aliksir/neko-harness-doctor` without a working CLI binary. Dropped the prefix so the bin entry survives publish.
+- `repository.url`: normalized to `git+https://...` per npm conventions.
+
 ### Added
 - **CI workflow** (`.github/workflows/ci.yml`): matrix-tests against Node 18/20/22 on both `ubuntu-latest` and `windows-latest`. Windows runner is intentional — it guards against CRLF regressions like the one fixed in v0.2.0.
 - **Test suite** (`test/test.mjs`): uses Node.js built-in `node:test` runner (zero new dependencies). Covers:
   - `parseFrontmatter` regression cases (LF, CRLF, mixed, empty, quoted) — pins down the v0.1.0 Windows bug.
   - `audit.mjs` CLI smoke tests (`--help`, `-h`, nonexistent target, minimal workspace JSON output).
 - `package.json`: `test` script now runs `node --test test/test.mjs` instead of a placeholder.
-
-### Planned (v0.3.0)
-- Lint workflow (ESLint)
-- Test fixture suite covering all 25 indicators
-- User-defined indicator support
-- `npm publish` to the public registry
 
 ## [0.2.0] - 2026-04-11
 
