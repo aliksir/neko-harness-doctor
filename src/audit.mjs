@@ -29,11 +29,13 @@ function parseArgs(argv) {
     lang: 'ja',
     quiet: false,
     help: false,
+    skipExternal: false,
   };
   for (let i = 2; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--help' || a === '-h') args.help = true;
     else if (a === '--quiet') args.quiet = true;
+    else if (a === '--skip-external') args.skipExternal = true;
     else if (a === '--target') args.target = argv[++i];
     else if (a === '--workspace') args.workspace = argv[++i];
     else if (a === '--format') args.format = argv[++i];
@@ -70,7 +72,11 @@ function loadI18n(lang) {
 // ===========================================================================
 
 function runAudit(opts) {
-  const ctx = { target: opts.target, workspace: opts.workspace };
+  const ctx = {
+    target: opts.target,
+    workspace: opts.workspace,
+    skipExternal: opts.skipExternal,
+  };
   const results = [];
   const severityRank = { critical: 0, major: 1, minor: 2 };
   const minRank = severityRank[opts.severity] ?? 2;
@@ -254,7 +260,7 @@ try {
   const qw = quickWins(results, args.top);
   let proposals = null;
   if (args.fixMode === 'propose') {
-    const ctx = { target: args.target, workspace: args.workspace };
+    const ctx = { target: args.target, workspace: args.workspace, skipExternal: args.skipExternal };
     proposals = generateProposals(results, INDICATORS, ctx);
   }
   const output = args.format === 'json'

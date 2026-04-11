@@ -46,13 +46,24 @@ export function safeStat(path) {
   }
 }
 
+/** Directory names always skipped during traversal. */
+const SKIP_DIRS = new Set([
+  'node_modules',
+  '__tests__',
+  'dist',
+  'build',
+  'coverage',
+  '.nyc_output',
+  '.cache',
+]);
+
 export function walkFiles(dir, pattern, maxDepth = 3, depth = 0) {
   const out = [];
   if (depth > maxDepth) return out;
   for (const ent of safeList(dir)) {
     const p = join(dir, ent.name);
     if (ent.isDirectory()) {
-      if (ent.name === 'node_modules' || ent.name.startsWith('.git')) continue;
+      if (SKIP_DIRS.has(ent.name) || ent.name.startsWith('.git')) continue;
       out.push(...walkFiles(p, pattern, maxDepth, depth + 1));
     } else if (ent.isFile() && pattern.test(ent.name)) {
       out.push(p);
@@ -79,10 +90,13 @@ export function parseJSON(text) {
  * Sufficient for SKILL.md frontmatter (name, description, risk, metadata).
  */
 export function parseFrontmatter(text) {
-  if (!text || !text.startsWith('---')) return null;
-  const end = text.indexOf('\n---', 3);
+  if (!text) return null;
+  // Normalize CRLF to LF — ECMAScript `.` doesn't match \r, which broke v0.1.0 on Windows
+  const norm = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  if (!norm.startsWith('---')) return null;
+  const end = norm.indexOf('\n---', 3);
   if (end < 0) return null;
-  const body = text.slice(4, end);
+  const body = norm.slice(4, end);
   const out = {};
   for (const line of body.split('\n')) {
     const m = line.match(/^([a-zA-Z_-]+):\s*(.*)$/);
@@ -160,6 +174,46 @@ export function findHookScripts(target) {
   const hooksDir = join(target, 'hooks');
   if (!existsSync(hooksDir)) return [];
   return walkFiles(hooksDir, /\.(mjs|js|sh)$/);
+}
+
+// ===========================================================================
+// External skill detection
+// ===========================================================================
+
+/**
+ * Determine if a skill comes from an external source (community / marketplace / upstream repo).
+ *
+ * Signals (OR):
+ *   - `source` field is not "custom" / "aliks" / "aliksir"
+ *   - `source` contains a URL (http/https)
+ *   - `date_added` field present (common in community skill repos)
+ *   - SKILL.md body contains both `allowed-tools:` and `model:` top-level keys
+ *     (a pattern used by Anthropic community skills)
+ *
+ * Used to let users exclude upstream-managed skills from indicators IND-13/15/16,
+ * because mass-rewriting upstream files causes merge conflicts.
+ */
+export function isExternalSkill(fm, skillMdContent) {
+  // Strict policy: a skill is considered "custom" (i.e. owned by the user) only when
+  // it carries an EXPLICIT marker. Absence of marker = external / upstream-managed.
+  //
+  // Rationale: users rarely touch upstream skill files, and counting them against
+  // IND-13/14/15/16 creates un-fixable violations. In --skip-external mode, we
+  // intentionally require an explicit opt-in.
+  //
+  // Explicit custom markers (any one suffices):
+  //   - frontmatter `source: custom` / `source: aliks` / `source: aliksir`
+  //   - frontmatter `author` contains "aliks" (case-insensitive)
+  //   - frontmatter `author: custom`
+  if (!fm) return true; // no parseable frontmatter → external
+
+  const src = fm.source ? String(fm.source).toLowerCase() : '';
+  const auth = fm.author ? String(fm.author).toLowerCase() : '';
+  const customSources = ['custom', 'aliks', 'aliksir'];
+  const hasCustomSource = customSources.includes(src);
+  const hasCustomAuthor = auth.includes('aliks') || auth === 'custom';
+
+  return !(hasCustomSource || hasCustomAuthor);
 }
 
 // ===========================================================================

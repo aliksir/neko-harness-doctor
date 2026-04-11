@@ -7,11 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Planned (v0.2.0)
+### Planned (v0.3.0)
 - CI workflow (lint + smoke test via GitHub Actions)
 - Test fixture suite covering all 25 indicators
 - User-defined indicator support
 - `npm publish` to the public registry
+
+## [0.2.0] - 2026-04-11
+
+### Added
+- **IND-10 shell script support**: detects `set -e`, `set -o errexit`, `trap ... ERR`, `|| exit` patterns in `.sh` hooks. Previously only JS/TS hooks were evaluated, causing false positives for every shell hook.
+- **Inline ignore directives**: add a `hd-ignore: IND-NN` comment (any line, any syntax) to exclude a specific file from a given indicator. Applies to IND-10 and IND-11. Useful for hooks whose side effects are the entire point (persistent logs, snapshots, drift detectors).
+- **`--skip-external` CLI flag**: excludes upstream-managed skills from IND-13/14/15/16 counts. Detects externals via `source` field, `date_added` field, or the community pattern of `allowed-tools:` + `model:` in SKILL.md.
+- **`isExternalSkill()` helper** in `src/utils.mjs` — reusable OR-logic detector
+- Additional directory skipping in `walkFiles`: `__tests__/`, `dist/`, `build/`, `coverage/`, `.nyc_output/`, `.cache/`. Previously only `node_modules/` was skipped.
+
+### Fixed
+- IND-10 no longer reports false positives for shell script hooks with `set -e` or `trap ... ERR`
+- `findHookScripts` no longer picks up test fixtures or bundled dist files under `__tests__/` etc.
+- IND-13/14/15/16 ran the same filesystem traversal 4× per invocation; now shared via a single `iterSkills` generator in `src/indicators/skills.mjs`
+
+### Notes
+- **Dogfooding discovery**: these gaps were found by running v0.1.0 against the author's own `~/.claude/` environment. Of 5 identified issues, 3 turned out to be v0.1.0 false positives (IND-10 shell, IND-13/15 upstream skills) rather than actual harness problems. The remaining 2 were legitimate environment issues fixed separately.
+- Backward-compatible: all new behavior is opt-in (`--skip-external`) or additive (shell detection PASSes strictly more hooks than before).
 
 ## [0.1.0] - 2026-04-11
 
