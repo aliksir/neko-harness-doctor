@@ -37,13 +37,47 @@ Manually checking each of these is tedious. This tool does all 25 checks in 5–
 
 ## Install
 
-### npm (recommended)
+### npm (recommended — standalone CLI)
 
 ```bash
 npm install -g @aliksir/neko-harness-doctor
 ```
 
-### GitHub clone
+### As a Claude Code plugin
+
+This repository also works as a Claude Code plugin. When enabled:
+
+- `bin/neko-harness-doctor` is automatically added to the Bash tool's PATH (invokable as a bare command)
+- The bundled skill responds to the `/neko-harness-doctor` slash command and natural-language triggers like "diagnose my harness"
+- Claude can auto-run diagnosis → present Quick Wins → walk through interactive fixes
+
+**Marketplace (pending review)**:
+
+```bash
+# Available after marketplace approval
+claude plugin install neko-harness-doctor
+```
+
+**Local testing (before approval / custom builds)**:
+
+```bash
+git clone https://github.com/aliksir/neko-harness-doctor.git
+claude --plugin-dir ./neko-harness-doctor
+# /neko-harness-doctor becomes available in the session
+```
+
+Plugin layout:
+
+```
+neko-harness-doctor/
+├── .claude-plugin/plugin.json      # manifest
+├── bin/neko-harness-doctor         # added to PATH when plugin is enabled
+├── skills/neko-harness-doctor/
+│   └── SKILL.md                    # Claude auto-trigger + /name shortcut
+└── src/                            # 25-indicator logic
+```
+
+### GitHub clone (raw script)
 
 ```bash
 git clone https://github.com/aliksir/neko-harness-doctor.git
