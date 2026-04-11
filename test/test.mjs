@@ -13,6 +13,7 @@ import { parseFrontmatter } from '../src/utils.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const AUDIT_ENTRY = join(__dirname, '..', 'src', 'audit.mjs');
+const BIN_ENTRY = join(__dirname, '..', 'bin', 'neko-harness-doctor');
 
 // ---------------------------------------------------------------------------
 // parseFrontmatter — line-ending regression tests (v0.1.0 CRLF bug)
@@ -90,6 +91,66 @@ test('audit.mjs: nonexistent target exits non-zero', () => {
     result.stderr.length > 0 || result.stdout.length > 0,
     'should emit an error message',
   );
+});
+
+// ---------------------------------------------------------------------------
+// bin/neko-harness-doctor — entry point regression tests
+// ---------------------------------------------------------------------------
+// v0.2.1 shipped a working package.json bin mapping, but the bin script itself
+// called `await import(absolutePath)` which breaks on Windows because ESM
+// parses `C:\...` as a URL with protocol `c:` and throws
+// ERR_UNSUPPORTED_ESM_URL_SCHEME. The fix is to wrap with pathToFileURL().
+// These tests guard the bin entry specifically so a bad dynamic import never
+// ships again.
+
+test('bin/neko-harness-doctor: --help runs via bin entry (Windows ESM fix)', () => {
+  const result = spawnSync(process.execPath, [BIN_ENTRY, '--help'], {
+    encoding: 'utf8',
+  });
+  assert.equal(
+    result.status,
+    0,
+    `bin entry should exit 0, got ${result.status}.\nstderr: ${result.stderr}`,
+  );
+  assert.ok(result.stdout.length > 0, 'bin --help should produce stdout');
+  assert.match(result.stdout, /neko-harness-doctor|Usage|使い方/i);
+  assert.doesNotMatch(
+    result.stderr,
+    /ERR_UNSUPPORTED_ESM_URL_SCHEME/,
+    'bin entry must not emit the Windows ESM URL scheme error',
+  );
+});
+
+test('bin/neko-harness-doctor: runs on a minimal workspace via bin entry', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'neko-hd-bin-fixture-'));
+  try {
+    writeFileSync(
+      join(dir, 'CLAUDE.md'),
+      '# Test harness\n\n## Critical rules\n- always test\n',
+      'utf8',
+    );
+    mkdirSync(join(dir, '.claude'), { recursive: true });
+    writeFileSync(
+      join(dir, '.claude', 'settings.json'),
+      JSON.stringify({ permissions: { allow: [], deny: [] } }, null, 2),
+      'utf8',
+    );
+
+    const result = spawnSync(
+      process.execPath,
+      [BIN_ENTRY, '--target', dir, '--format', 'json'],
+      { encoding: 'utf8' },
+    );
+    assert.equal(
+      result.status,
+      0,
+      `bin entry exited ${result.status}: ${result.stderr}`,
+    );
+    const parsed = JSON.parse(result.stdout);
+    assert.ok(parsed.grade, 'bin JSON output should have a grade field');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });
 
 test('audit.mjs: runs on a minimal workspace and exits 0', () => {

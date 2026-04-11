@@ -12,6 +12,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Test fixture suite covering all 25 indicators
 - User-defined indicator support
 
+## [0.2.2] - 2026-04-12
+
+### Fixed
+- **`bin` entry crashed on Windows** with `ERR_UNSUPPORTED_ESM_URL_SCHEME`. The shim did `await import(absolutePath)`, and on Windows Node's ESM loader parses `C:\...` as a URL whose scheme is `c:`, which is rejected. Wrapped the path with `pathToFileURL(...).href` so the dynamic import receives a proper `file://` URL. Linux/macOS were unaffected because absolute POSIX paths happen to work.
+
+### Added
+- **bin-entry regression tests** (`test/test.mjs`): two new cases exercise the published `bin/neko-harness-doctor` script directly (not just the `src/audit.mjs` module) to catch platform-specific shim bugs before they ship. The first one explicitly asserts that `ERR_UNSUPPORTED_ESM_URL_SCHEME` never appears in stderr.
+
 ## [0.2.1] - 2026-04-12
 
 ### Fixed
