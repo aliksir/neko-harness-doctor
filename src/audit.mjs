@@ -11,7 +11,7 @@ import { fileURLToPath } from 'url';
 import { INDICATORS, CATEGORY_ORDER } from './indicators/index.mjs';
 import { calcGrade, quickWins } from './grading.mjs';
 import { generateProposals } from './fix-strategies.mjs';
-import { safeRead, parseJSON, interp } from './utils.mjs';
+import { safeRead, parseJSON, interp, expandTilde, findDefaultWorkspace } from './utils.mjs';
 
 // ===========================================================================
 // CLI args
@@ -20,7 +20,7 @@ import { safeRead, parseJSON, interp } from './utils.mjs';
 function parseArgs(argv) {
   const args = {
     target: join(homedir(), '.claude'),
-    workspace: process.env.NEKO_HARNESS_WORKSPACE || process.cwd(),
+    workspace: null, // resolved after parsing so CLI flag wins
     format: 'markdown',
     category: null,
     severity: 'minor',
@@ -44,6 +44,16 @@ function parseArgs(argv) {
     else if (a === '--top') args.top = parseInt(argv[++i], 10);
     else if (a === '--fix-mode') args.fixMode = argv[++i];
     else if (a === '--lang') args.lang = argv[++i];
+  }
+  // Expand `~` in user-facing paths (PowerShell does not do tilde expansion).
+  args.target = expandTilde(args.target);
+  if (args.workspace) {
+    args.workspace = expandTilde(args.workspace);
+  } else {
+    // Walk upward from cwd looking for a workspace marker (.claude/, plans/, CLAUDE.md)
+    // so users in sub-project directories (e.g. C:/work/some-repo) still pick up
+    // the parent workspace (C:/work) without needing --workspace explicitly.
+    args.workspace = findDefaultWorkspace(process.cwd());
   }
   return args;
 }

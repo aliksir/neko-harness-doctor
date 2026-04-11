@@ -5,11 +5,15 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { mkdtempSync, writeFileSync, mkdirSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { tmpdir, homedir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { parseFrontmatter } from '../src/utils.mjs';
+import {
+  parseFrontmatter,
+  expandTilde,
+  findDefaultWorkspace,
+} from '../src/utils.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const AUDIT_ENTRY = join(__dirname, '..', 'src', 'audit.mjs');
@@ -90,6 +94,146 @@ test('audit.mjs: nonexistent target exits non-zero', () => {
   assert.ok(
     result.stderr.length > 0 || result.stdout.length > 0,
     'should emit an error message',
+  );
+});
+
+// ---------------------------------------------------------------------------
+// expandTilde — cross-platform tilde expansion (v0.2.3)
+// ---------------------------------------------------------------------------
+// PowerShell does not perform tilde expansion on unquoted arguments, so
+// `neko-harness-doctor --target ~/.claude` reaches the CLI as the literal
+// string `~/.claude`. We expand it ourselves so Bash and PowerShell users
+// get the same behavior.
+
+test('expandTilde: ~ alone returns homedir', () => {
+  assert.equal(expandTilde('~'), homedir());
+});
+
+test('expandTilde: ~/foo returns joined home path (POSIX)', () => {
+  assert.equal(expandTilde('~/foo'), join(homedir(), 'foo'));
+});
+
+test('expandTilde: ~\\foo returns joined home path (Windows)', () => {
+  assert.equal(expandTilde('~\\foo'), join(homedir(), 'foo'));
+});
+
+test('expandTilde: absolute path passes through unchanged', () => {
+  const abs = process.platform === 'win32' ? 'C:\\tmp\\foo' : '/tmp/foo';
+  assert.equal(expandTilde(abs), abs);
+});
+
+test('expandTilde: empty / null / non-string passes through', () => {
+  assert.equal(expandTilde(''), '');
+  assert.equal(expandTilde(null), null);
+  assert.equal(expandTilde(undefined), undefined);
+});
+
+test('expandTilde: paths with ~ later in the string are not expanded', () => {
+  // Only leading ~ expands — `foo/~/bar` is a literal.
+  assert.equal(expandTilde('foo/~/bar'), 'foo/~/bar');
+});
+
+// ---------------------------------------------------------------------------
+// findDefaultWorkspace — upward walk for workspace marker (v0.2.3)
+// ---------------------------------------------------------------------------
+// Previously `workspace` defaulted to `process.cwd()`, which broke workflow
+// indicators (IND-23/24/25) whenever users ran the CLI from a nested
+// sub-project directory. We now walk upward looking for `.claude/`, `plans/`,
+// or `CLAUDE.md` markers like git walks up for `.git`.
+
+test('findDefaultWorkspace: picks directory that directly contains .claude/', () => {
+  const root = mkdtempSync(join(tmpdir(), 'neko-hd-ws-'));
+  try {
+    mkdirSync(join(root, '.claude'));
+    assert.equal(findDefaultWorkspace(root), root);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('findDefaultWorkspace: walks upward from a nested sub-directory', () => {
+  const root = mkdtempSync(join(tmpdir(), 'neko-hd-ws-'));
+  try {
+    mkdirSync(join(root, '.claude'));
+    const nested = join(root, 'some-repo', 'src');
+    mkdirSync(nested, { recursive: true });
+    assert.equal(findDefaultWorkspace(nested), root);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('findDefaultWorkspace: picks directory with plans/ when no .claude/', () => {
+  const root = mkdtempSync(join(tmpdir(), 'neko-hd-ws-'));
+  try {
+    mkdirSync(join(root, 'plans'));
+    assert.equal(findDefaultWorkspace(root), root);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('findDefaultWorkspace: picks directory with CLAUDE.md when no .claude/ or plans/', () => {
+  const root = mkdtempSync(join(tmpdir(), 'neko-hd-ws-'));
+  try {
+    writeFileSync(join(root, 'CLAUDE.md'), '# root\n', 'utf8');
+    const nested = join(root, 'subdir');
+    mkdirSync(nested);
+    assert.equal(findDefaultWorkspace(nested), root);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('findDefaultWorkspace: returns startDir when no marker is found upward', () => {
+  const root = mkdtempSync(join(tmpdir(), 'neko-hd-ws-'));
+  try {
+    const nested = join(root, 'empty', 'deeper');
+    mkdirSync(nested, { recursive: true });
+    // The return is either `nested` (no marker at all) or some ancestor that
+    // happens to contain a marker on the real filesystem above tmpdir.
+    // At minimum, the result must exist and must not throw.
+    const result = findDefaultWorkspace(nested);
+    assert.equal(typeof result, 'string');
+    assert.ok(result.length > 0);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('findDefaultWorkspace: NEKO_HARNESS_WORKSPACE env var wins', () => {
+  const original = process.env.NEKO_HARNESS_WORKSPACE;
+  const override = mkdtempSync(join(tmpdir(), 'neko-hd-ws-env-'));
+  const elsewhere = mkdtempSync(join(tmpdir(), 'neko-hd-ws-start-'));
+  try {
+    mkdirSync(join(elsewhere, '.claude'));
+    process.env.NEKO_HARNESS_WORKSPACE = override;
+    assert.equal(findDefaultWorkspace(elsewhere), override);
+  } finally {
+    if (original === undefined) delete process.env.NEKO_HARNESS_WORKSPACE;
+    else process.env.NEKO_HARNESS_WORKSPACE = original;
+    rmSync(override, { recursive: true, force: true });
+    rmSync(elsewhere, { recursive: true, force: true });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// audit.mjs: --target ~/... expands on PowerShell-style input (v0.2.3)
+// ---------------------------------------------------------------------------
+
+test('audit.mjs: --target ~/nonexistent expands and reports the resolved path', () => {
+  // We pass a literal `~` so the CLI has to expand it itself. We then assert
+  // the error message contains the expanded homedir, not the raw tilde.
+  const result = runAudit(['--target', '~/definitely-missing-neko-hd-test']);
+  assert.notEqual(result.status, 0);
+  const stream = result.stderr + result.stdout;
+  assert.ok(
+    stream.includes(homedir()),
+    `expected error message to contain homedir, got: ${stream}`,
+  );
+  assert.ok(
+    !/~\\?\/definitely-missing/.test(stream),
+    `raw tilde should have been expanded before the error was printed, got: ${stream}`,
   );
 });
 

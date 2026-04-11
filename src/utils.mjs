@@ -106,6 +106,56 @@ export function parseFrontmatter(text) {
 }
 
 // ===========================================================================
+// Path expansion and workspace discovery
+// ===========================================================================
+
+/**
+ * Expand `~` and `~/` to the user's home directory.
+ * Safe for cross-platform use — handles both POSIX (`~/foo`) and
+ * Windows PowerShell paths (`~\foo`). Non-tilde paths pass through unchanged.
+ *
+ * PowerShell does not perform tilde expansion on unquoted arguments, so users
+ * who run `neko-harness-doctor --target ~/.claude` get the literal string
+ * `~/.claude`. This helper makes that work the same as Bash would.
+ */
+export function expandTilde(p) {
+  if (typeof p !== 'string' || p.length === 0) return p;
+  if (p === '~') return homedir();
+  if (p.startsWith('~/') || p.startsWith('~\\')) {
+    return join(homedir(), p.slice(2));
+  }
+  return p;
+}
+
+/**
+ * Walk up from a starting directory looking for a likely workspace root.
+ * A directory is treated as a workspace root if it contains any of:
+ *   - `.claude/` directory
+ *   - `plans/` directory
+ *   - `CLAUDE.md` file
+ *
+ * Returns the first match, or `startDir` itself if nothing is found.
+ * Mirrors how `git` walks upward looking for `.git`.
+ */
+export function findDefaultWorkspace(startDir = process.cwd()) {
+  if (process.env.NEKO_HARNESS_WORKSPACE) {
+    return process.env.NEKO_HARNESS_WORKSPACE;
+  }
+  const markers = ['.claude', 'plans', 'CLAUDE.md'];
+  let dir = startDir;
+  // Guard against infinite loops with a hard depth limit.
+  for (let i = 0; i < 20; i++) {
+    for (const m of markers) {
+      if (existsSync(join(dir, m))) return dir;
+    }
+    const parent = dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+  return startDir;
+}
+
+// ===========================================================================
 // Path discovery (generalized: accepts --target and --workspace)
 // ===========================================================================
 

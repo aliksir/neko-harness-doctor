@@ -12,6 +12,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Test fixture suite covering all 25 indicators
 - User-defined indicator support
 
+## [0.2.3] - 2026-04-12
+
+### Added
+- **Tilde expansion for `--target` / `--workspace`**: `neko-harness-doctor --target ~/.claude` now works from PowerShell (and any shell that does not expand `~` itself). Both POSIX-style `~/foo` and Windows-style `~\foo` are handled, with `~` alone mapping to `os.homedir()`. Non-tilde paths pass through unchanged, and a mid-string `~` (e.g. `foo/~/bar`) is intentionally left alone.
+- **Smart workspace default**: when `--workspace` is not set, the CLI now walks upward from `process.cwd()` looking for any of `.claude/`, `plans/`, or `CLAUDE.md` — the same way `git` walks upward for `.git/`. This means running `neko-harness-doctor` from a nested sub-project directory (e.g. `C:/work/some-repo`) correctly picks up the parent workspace (`C:/work`) so Workflow indicators (IND-23/24/25) find the right gate definitions, plan directory, and review protocol. `NEKO_HARNESS_WORKSPACE` still takes precedence.
+- **`expandTilde()` and `findDefaultWorkspace()`** helpers exported from `src/utils.mjs` for reuse.
+- **7 new unit tests + 6 integration tests** covering tilde expansion edge cases, upward workspace discovery (`.claude/` marker, `plans/` marker, `CLAUDE.md` marker, nested descent, fall-through), the `NEKO_HARNESS_WORKSPACE` override, and a CLI-level check that `--target ~/missing` reports the resolved home path rather than the literal tilde. Test count: 12 → 25.
+
+### Fixed
+- Users running the CLI from sub-project directories previously got false-positive Workflow violations because `workspace` defaulted to `process.cwd()`. With the upward walk this works out of the box.
+
 ## [0.2.2] - 2026-04-12
 
 ### Fixed
