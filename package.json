@@ -45,6 +45,8 @@
     "src/",
     "bin/",
     "docs/",
+    ".claude-plugin/",
+    "skills/",
     "README.md",
     "README.en.md",
     "LICENSE",

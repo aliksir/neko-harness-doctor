@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Claude Code plugin support**: `.claude-plugin/plugin.json` manifest and `skills/neko-harness-doctor/SKILL.md`. The repository can now be submitted to the Claude Code plugin directory. When installed as a plugin, `bin/neko-harness-doctor` is automatically added to the Bash tool's PATH, and the bundled skill lets Claude invoke diagnosis via `/neko-harness-doctor` or natural language triggers like "ハーネス診断して".
+- `.claude-plugin/` and `skills/` added to `files` in `package.json` so the npm tarball is consistent with the GitHub repository layout.
+
 ### Planned (v0.3.0)
 - Lint workflow (ESLint)
 - Test fixture suite covering all 25 indicators
