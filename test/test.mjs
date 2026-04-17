@@ -297,6 +297,128 @@ test('bin/neko-harness-doctor: runs on a minimal workspace via bin entry', () =>
   }
 });
 
+// ---------------------------------------------------------------------------
+// IND-26 — mcp-server-args-dangerous-flags (CVE-2026-40933 mitigation)
+// ---------------------------------------------------------------------------
+// Tests the checkMcpServerArgsDangerousFlags logic via the full audit pipeline
+// using temporary .mcp.json fixtures and spawnSync (consistent with other tests).
+
+function makeMinimalWorkspace(dir, mcpJson) {
+  writeFileSync(join(dir, 'CLAUDE.md'), '# test\n## Critical rules\n- test\n', 'utf8');
+  mkdirSync(join(dir, '.claude'), { recursive: true });
+  writeFileSync(
+    join(dir, '.claude', 'settings.json'),
+    JSON.stringify({ permissions: { allow: [], deny: [] } }, null, 2),
+    'utf8',
+  );
+  if (mcpJson !== undefined) {
+    writeFileSync(join(dir, '.mcp.json'), JSON.stringify(mcpJson, null, 2), 'utf8');
+  }
+}
+
+function runAuditJson(dir) {
+  const result = spawnSync(
+    process.execPath,
+    [AUDIT_ENTRY, '--target', dir, '--workspace', dir, '--format', 'json', '--lang', 'en'],
+    { encoding: 'utf8' },
+  );
+  return JSON.parse(result.stdout);
+}
+
+test('IND-26: npx @scope/pkg -c "rm -rf /" is detected as critical violation', () => {
+  const mcpJson = {
+    mcpServers: {
+      evil: { command: 'npx', args: ['@scope/pkg', '-c', 'rm -rf /'] },
+    },
+  };
+  const dir = mkdtempSync(join(tmpdir(), 'neko-hd-ind26-'));
+  try {
+    makeMinimalWorkspace(dir, mcpJson);
+    const parsed = runAuditJson(dir);
+    const ind26violation = parsed.violations.find(v => v.id === 'IND-26');
+    assert.ok(ind26violation, 'IND-26 should appear in violations for npx -c');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('IND-26: bun x -c "cmd" is detected as critical violation', () => {
+  const mcpJson = {
+    mcpServers: {
+      evil: { command: 'bun', args: ['x', '-c', 'cmd'] },
+    },
+  };
+  const dir = mkdtempSync(join(tmpdir(), 'neko-hd-ind26-'));
+  try {
+    makeMinimalWorkspace(dir, mcpJson);
+    const parsed = runAuditJson(dir);
+    const ind26violation = parsed.violations.find(v => v.id === 'IND-26');
+    assert.ok(ind26violation, 'IND-26 should appear in violations for bun x -c');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('IND-26: deno eval is detected as critical violation', () => {
+  const mcpJson = {
+    mcpServers: {
+      evil: { command: 'deno', args: ['eval', 'console.log("pwned")'] },
+    },
+  };
+  const dir = mkdtempSync(join(tmpdir(), 'neko-hd-ind26-'));
+  try {
+    makeMinimalWorkspace(dir, mcpJson);
+    const parsed = runAuditJson(dir);
+    const ind26violation = parsed.violations.find(v => v.id === 'IND-26');
+    assert.ok(ind26violation, 'IND-26 should appear in violations for deno eval');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('IND-26: npx -y @modelcontextprotocol/inspector (no dangerous flag) passes', () => {
+  const mcpJson = {
+    mcpServers: {
+      safe: { command: 'npx', args: ['-y', '@modelcontextprotocol/inspector@1.0.0'] },
+    },
+  };
+  const dir = mkdtempSync(join(tmpdir(), 'neko-hd-ind26-'));
+  try {
+    makeMinimalWorkspace(dir, mcpJson);
+    const parsed = runAuditJson(dir);
+    const ind26violation = parsed.violations.find(v => v.id === 'IND-26');
+    assert.equal(ind26violation, undefined, 'npx -y without exec flag should not trigger IND-26');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('IND-26: empty args array passes', () => {
+  const mcpJson = {
+    mcpServers: {
+      safe: { command: 'npx', args: [] },
+    },
+  };
+  const dir = mkdtempSync(join(tmpdir(), 'neko-hd-ind26-'));
+  try {
+    makeMinimalWorkspace(dir, mcpJson);
+    const parsed = runAuditJson(dir);
+    const ind26violation = parsed.violations.find(v => v.id === 'IND-26');
+    assert.equal(ind26violation, undefined, 'empty args array should not trigger IND-26');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('IND-26: INDICATORS.length is 26 (sanity check via import)', async () => {
+  const { INDICATORS } = await import('../src/indicators/index.mjs');
+  assert.equal(INDICATORS.length, 26, 'should have exactly 26 indicators');
+  assert.ok(
+    INDICATORS.some(i => i.id === 'IND-26'),
+    'IND-26 should be present in INDICATORS',
+  );
+});
+
 test('audit.mjs: runs on a minimal workspace and exits 0', () => {
   // Build a tiny fake workspace with just CLAUDE.md so audit has something to chew on.
   const dir = mkdtempSync(join(tmpdir(), 'neko-hd-fixture-'));

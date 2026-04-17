@@ -1,6 +1,6 @@
-# 25 Indicators
+# 26 Indicators
 
-Full reference for each of the 25 anti-pattern indicators evaluated by neko-harness-doctor.
+Full reference for each of the 26 anti-pattern indicators evaluated by neko-harness-doctor.
 
 **Source of truth**: `src/indicators/*.mjs` and `src/indicators/index.mjs`.
 This document is a human-readable projection of the implementation.
@@ -16,11 +16,11 @@ This document is a human-readable projection of the implementation.
 | Hooks | 3 | | |
 | Skills | 4 | | |
 | Memory | 3 | | |
-| MCP | 3 | | |
+| MCP | 4 | | |
 | Workflow | 3 | | |
-| **Total** | **25** | **3+14+7** | **1** |
+| **Total** | **26** | **4+14+7** | **1** |
 
-**Arithmetic**: 3 + 14 + 7 + 1 = 25 ✅
+**Arithmetic**: 4 + 14 + 7 + 1 = 26 ✅
 
 ---
 
@@ -188,7 +188,7 @@ This document is a human-readable projection of the implementation.
 
 ---
 
-## MCP (3)
+## MCP (4)
 
 ### IND-20 — mcp-version-not-pinned (major)
 
@@ -212,6 +212,15 @@ This document is a human-readable projection of the implementation.
   - Default allowlist: `@anthropic-ai`, `@anthropic`, `@modelcontextprotocol`, `@microsoft`, `@vercel`, `@cloudflare`, `@openai`, `@google`, `@sentry`, `@supabase`
   - User-extensible via `~/.neko-harness-doctor/config.json`
 - **Remediation**: Verify publisher trust; run `npm view <pkg> scripts.postinstall` for supply chain audit
+
+### IND-26 — mcp-server-args-dangerous-flags (critical)
+
+- **Severity**: `critical`
+- **Evidence**: CVE-2026-40933 (Flowise Authenticated RCE Via MCP Adapters `npx -c`), https://github.com/FlowiseAI/Flowise/security/advisories/GHSA-c9gw-hvqq-f33r
+- **Auto-fixable**: No
+- **Detection**: `.mcp.json` `mcpServers[*].args` arrays are joined into a flat string and matched against dangerous execution flags (`-c`, `--call`, `exec`, `dlx`, `x`, `eval`, `-e`, `-p`) for the npx/npm/pnpm/yarn/bun/deno ecosystem
+- **Why**: Trusted package manager commands (e.g. `npx`) combined with arbitrary-code-execution flags bypass publisher allowlists. CVE-2026-40933 demonstrated RCE via `npx -c "<shell cmd>"` in MCP adapter configurations
+- **Remediation**: Remove `-c`, `--call`, `exec`, `dlx`, `eval`, `-e`, `-p` from MCP server args. Use explicit package references (`npx @scope/pkg@x.y.z`) without inline shell commands
 
 ---
 

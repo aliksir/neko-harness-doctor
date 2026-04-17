@@ -1,4 +1,4 @@
-// indicators/index.mjs - Aggregate all 25 indicators
+// indicators/index.mjs - Aggregate all 26 indicators
 
 import { claudeMdIndicators } from './claude-md.mjs';
 import { settingsIndicators } from './settings.mjs';
@@ -14,13 +14,13 @@ export const INDICATORS = [
   ...hooksIndicators,      // 3
   ...skillsIndicators,     // 4
   ...memoryIndicators,     // 3
-  ...mcpIndicators,        // 3
+  ...mcpIndicators,        // 4
   ...workflowIndicators,   // 3
 ];
 
-// Runtime sanity check: always exactly 25 indicators
-if (INDICATORS.length !== 25) {
-  throw new Error(`neko-harness-doctor: expected 25 indicators, got ${INDICATORS.length}`);
+// Runtime sanity check: always exactly 26 indicators
+if (INDICATORS.length !== 26) {
+  throw new Error(`neko-harness-doctor: expected 26 indicators, got ${INDICATORS.length}`);
 }
 
 export const CATEGORY_ORDER = [

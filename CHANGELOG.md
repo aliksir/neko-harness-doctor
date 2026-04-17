@@ -7,14 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-04-17
+
 ### Added
+- **IND-26 `mcp-server-args-dangerous-flags`** (MCP category, severity: critical): detects dangerous arbitrary-code-execution flags (`-c`, `--call`, `exec`, `dlx`, `x`, `eval`, `-e`, `-p`) in `.mcp.json` `mcpServers[*].args` arrays for the npx/npm/pnpm/yarn/bun/deno ecosystem. Mitigates CVE-2026-40933 (Flowise Authenticated RCE Via MCP Adapters `npx -c` pattern). Reference: https://github.com/FlowiseAI/Flowise/security/advisories/GHSA-c9gw-hvqq-f33r
 - **Claude Code plugin support**: `.claude-plugin/plugin.json` manifest and `skills/neko-harness-doctor/SKILL.md`. The repository can now be submitted to the Claude Code plugin directory. When installed as a plugin, `bin/neko-harness-doctor` is automatically added to the Bash tool's PATH, and the bundled skill lets Claude invoke diagnosis via `/neko-harness-doctor` or natural language triggers like "ハーネス診断して".
 - `.claude-plugin/` and `skills/` added to `files` in `package.json` so the npm tarball is consistent with the GitHub repository layout.
 
-### Planned (v0.3.0)
-- Lint workflow (ESLint)
-- Test fixture suite covering all 25 indicators
-- User-defined indicator support
+### Changed
+- Total indicator count: 25 → 26. MCP category: 3 → 4.
+- `src/indicators/index.mjs` sanity check updated: `expected 25` → `expected 26`.
 
 ## [0.2.3] - 2026-04-12
 

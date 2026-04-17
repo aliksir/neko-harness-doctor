@@ -1,7 +1,7 @@
 {
   "name": "@aliksir/neko-harness-doctor",
-  "version": "0.2.3",
-  "description": "Diagnose Claude Code harness (CLAUDE.md, settings.json, .mcp.json, hooks, skills, memory, MCP, workflow) against 25 anti-pattern indicators. Outputs S-E grade and prioritized Quick Wins with interactive fix proposals.",
+  "version": "0.3.0",
+  "description": "Diagnose Claude Code harness (CLAUDE.md, settings.json, .mcp.json, hooks, skills, memory, MCP, workflow) against 26 anti-pattern indicators. Outputs S-E grade and prioritized Quick Wins with interactive fix proposals.",
   "type": "module",
   "bin": {
     "neko-harness-doctor": "bin/neko-harness-doctor"

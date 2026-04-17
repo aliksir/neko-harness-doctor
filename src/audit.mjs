@@ -1,6 +1,6 @@
 // audit.mjs - neko-harness-doctor main entry point
 //
-// Diagnoses Claude Code harness against 25 anti-pattern indicators.
+// Diagnoses Claude Code harness against 26 anti-pattern indicators.
 // Read-only: never writes files. Fix application is delegated to Claude Code.
 
 import { existsSync } from 'fs';
