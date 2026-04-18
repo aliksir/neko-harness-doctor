@@ -201,6 +201,47 @@ test('findDefaultWorkspace: returns startDir when no marker is found upward', ()
   }
 });
 
+test('findDefaultWorkspace: prefers outermost workspace when nested dir also has markers (v0.3.1)', () => {
+  // v0.3.0 regression: when run from a nested sub-project that contains
+  // `.claude/`, the walk stopped at the first match and missed the outer
+  // workspace that has more markers. v0.3.1 scores by marker count.
+  const outer = mkdtempSync(join(tmpdir(), 'neko-hd-ws-outer-'));
+  try {
+    // outer: .claude + plans + CLAUDE.md (score=3)
+    mkdirSync(join(outer, '.claude'));
+    mkdirSync(join(outer, 'plans'));
+    writeFileSync(join(outer, 'CLAUDE.md'), '# outer\n', 'utf8');
+    // outer/subproject: .claude only (score=1)
+    const inner = join(outer, 'subproject');
+    mkdirSync(inner);
+    mkdirSync(join(inner, '.claude'));
+    // From inner, outer's higher score should win.
+    assert.equal(findDefaultWorkspace(inner), outer);
+  } finally {
+    rmSync(outer, { recursive: true, force: true });
+  }
+});
+
+test('findDefaultWorkspace: keeps nested dir when its score is higher than ancestors (v0.3.1)', () => {
+  // Mirror case: nested has a full marker set, ancestor has only CLAUDE.md.
+  // Nested (start) should win because it scores higher.
+  const root = mkdtempSync(join(tmpdir(), 'neko-hd-ws-score-'));
+  try {
+    // root: CLAUDE.md only (score=1)
+    writeFileSync(join(root, 'CLAUDE.md'), '# root\n', 'utf8');
+    // root/nested: .claude + plans + CLAUDE.md (score=3)
+    const nested = join(root, 'nested');
+    mkdirSync(nested);
+    mkdirSync(join(nested, '.claude'));
+    mkdirSync(join(nested, 'plans'));
+    writeFileSync(join(nested, 'CLAUDE.md'), '# nested\n', 'utf8');
+    // From nested, its own score=3 beats root's score=1.
+    assert.equal(findDefaultWorkspace(nested), nested);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test('findDefaultWorkspace: NEKO_HARNESS_WORKSPACE env var wins', () => {
   const original = process.env.NEKO_HARNESS_WORKSPACE;
   const override = mkdtempSync(join(tmpdir(), 'neko-hd-ws-env-'));

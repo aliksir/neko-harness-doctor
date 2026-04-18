@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-04-18
+
+### Fixed
+- **`findDefaultWorkspace`: false-positive workspace detection for nested sub-projects** (IND-23/24/25 regression): when run from a nested Claude Code project (e.g. `C:/work/my-lib` that contains `.claude/`), the upward walk stopped at the first marker match, selecting the nested directory instead of the outer `C:/work` workspace that also contains `plans/` and `CLAUDE.md`. The new logic scores each ancestor by how many workspace markers it contains (`.claude/`, `plans/`, `CLAUDE.md`) and picks the highest-scoring directory, preferring the outermost match on ties. Workflow indicators now correctly resolve gates/plans/review-protocol under the true workspace root. `NEKO_HARNESS_WORKSPACE` and explicit `--workspace` still take precedence. 2 new unit tests added (test count: 25 → 27).
+
 ## [0.3.0] - 2026-04-17
 
 ### Added

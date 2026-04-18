@@ -129,30 +129,50 @@ export function expandTilde(p) {
 
 /**
  * Walk up from a starting directory looking for a likely workspace root.
- * A directory is treated as a workspace root if it contains any of:
+ * A directory is scored by how many of the following markers it contains:
  *   - `.claude/` directory
  *   - `plans/` directory
  *   - `CLAUDE.md` file
  *
- * Returns the first match, or `startDir` itself if nothing is found.
- * Mirrors how `git` walks upward looking for `.git`.
+ * The ancestor with the highest marker count wins. Ties keep the first
+ * match encountered (closer to `startDir`). The home directory itself is
+ * never treated as a workspace (it contains `~/.claude/` as user config,
+ * not as a workspace marker) and stops the upward walk. Returns
+ * `startDir` if nothing is found.
+ *
+ * This scoring approach fixes a v0.3.0 regression where running from a
+ * nested sub-project (e.g. `C:/work/my-lib` that contains `.claude/`)
+ * stopped at the first match and missed the real workspace (`C:/work`)
+ * that also contains `plans/` and `CLAUDE.md`. Workflow indicators
+ * (IND-23/24/25) now see the true workspace root.
  */
 export function findDefaultWorkspace(startDir = process.cwd()) {
   if (process.env.NEKO_HARNESS_WORKSPACE) {
     return process.env.NEKO_HARNESS_WORKSPACE;
   }
   const markers = ['.claude', 'plans', 'CLAUDE.md'];
+  const countMarkers = (d) => markers.filter((m) => existsSync(join(d, m))).length;
+
+  const home = homedir();
   let dir = startDir;
+  let bestMatch = null;
+  let bestScore = 0;
   // Guard against infinite loops with a hard depth limit.
   for (let i = 0; i < 20; i++) {
-    for (const m of markers) {
-      if (existsSync(join(dir, m))) return dir;
+    // The home directory is user config land, not a workspace. Stop here so
+    // a coincidental `~/.claude/` or `~/plans/` cannot hijack the result.
+    if (dir === home) break;
+    const score = countMarkers(dir);
+    // Strictly higher score wins. Ties keep the first (closer) match.
+    if (score > bestScore) {
+      bestScore = score;
+      bestMatch = dir;
     }
     const parent = dirname(dir);
     if (parent === dir) break;
     dir = parent;
   }
-  return startDir;
+  return bestMatch || startDir;
 }
 
 // ===========================================================================
