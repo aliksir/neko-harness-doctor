@@ -1,6 +1,6 @@
 # neko-harness-doctor
 
-Claude Code のハーネス（CLAUDE.md / settings.json / .mcp.json / hooks / skills / memory / MCP / workflow）を 25 のアンチパターン指標で自動診断し、S〜E グレードと Quick Wins（修正提案）を出力する CLI ツール。
+Claude Code のハーネス（CLAUDE.md / settings.json / .mcp.json / hooks / skills / memory / MCP / workflow）を 26 のアンチパターン指標で自動診断し、S〜E グレードと Quick Wins（修正提案）を出力する CLI ツール。
 
 ## 技術スタック
 
@@ -39,7 +39,7 @@ npm test
 
 ## 開発規約
 
-- `src/audit.mjs` の `INDICATORS` 配列が 25 指標の SSOT。ドキュメントと乖離したら SSOT 側を正とする
+- `src/indicators/index.mjs` の INDICATORS 配列が 26 指標の SSOT（v0.3.0 で 25→26、IND-26 追加）。ドキュメントと乖離したら SSOT 側を正とする
 - CLI 本体は診断対象ファイルを一切変更しない（Read-only 原則）。修正は `--fix-mode propose` で JSON 出力し、Claude Code 側の Edit tool で適用する
 - 外部ネットワーク通信（fetch / http）を追加しない
 - runtime 依存はゼロを維持する。devDependencies（vitest 等）は許可
