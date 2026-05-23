@@ -1,6 +1,7 @@
-// hooks.mjs - Hooks indicators (IND-10 to IND-12)
+// hooks.mjs - Hooks indicators (IND-10 to IND-12, IND-31)
 
 import { basename } from 'path';
+import { execSync } from 'child_process';
 import { safeRead, parseJSON, findHookScripts, findSettingsJson } from '../utils.mjs';
 
 /**
@@ -117,6 +118,60 @@ export const hooksIndicators = [
         };
       }
       return { passed: true };
+    },
+  },
+
+  // -------------------------------------------------------------------------
+  // v0.4 indicators (IND-31)
+  // Source: designs/20260523_doctor-v0.4-roadmap.md
+  // -------------------------------------------------------------------------
+
+  {
+    id: 'IND-31',
+    category: 'hooks',
+    name: 'yoshi-binary-unavailable',
+    severity: 'minor',
+    evidence: 'yoshi token optimizer (CLAUDE.md yoshi section, feedback_no_external_api.md)',
+    autoFixable: false,
+    fixStrategy: null,
+    check(ctx) {
+      // Allow opt-out via env var (e.g. CI environments without yoshi)
+      if (process.env.NEKO_HARNESS_SKIP_YOSHI) {
+        return { passed: true, note: 'skipped via NEKO_HARNESS_SKIP_YOSHI' };
+      }
+      let stdout;
+      try {
+        stdout = execSync('yoshi --version', {
+          timeout: 5000,
+          stdio: ['ignore', 'pipe', 'ignore'],
+        }).toString().trim();
+      } catch {
+        return {
+          passed: false,
+          violation: 'yoshi not on PATH or did not respond',
+          remediation: 'Install yoshi (C:/work/yoshi/) and put it on PATH. Required for Bash output compression in `bash` hook scripts.',
+        };
+      }
+      // Match "yoshi 0.6.0" or "0.6.0" or anything with a version number
+      const m = stdout.match(/(\d+)\.(\d+)\.(\d+)/);
+      if (!m) {
+        return {
+          passed: false,
+          violation: `yoshi --version returned unexpected output: ${stdout.slice(0, 60)}`,
+          remediation: 'Upgrade yoshi to v0.6.0 or later (PowerShell deny avoidance requires v0.6+).',
+        };
+      }
+      const major = parseInt(m[1], 10);
+      const minor = parseInt(m[2], 10);
+      // Require >= v0.6.0 (PowerShell deny avoidance, `yoshi git -C` requires v0.7.0)
+      if (major === 0 && minor < 6) {
+        return {
+          passed: false,
+          violation: `yoshi version ${m[0]} is below v0.6.0 (PowerShell deny avoidance requires v0.6+)`,
+          remediation: 'Upgrade yoshi to v0.6.0+ (`yoshi git -C <path>` ergonomics requires v0.7.0+).',
+        };
+      }
+      return { passed: true, note: `yoshi ${m[0]} detected` };
     },
   },
 ];

@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-05-24
+
+### Added
+- **7 new indicators** (IND-27 to IND-33), bringing the total from 26 to 33. Source: `designs/20260523_doctor-v0.4-roadmap.md`.
+  - **IND-27 `pre-mortem-section-missing`** (workflow, major/minor): recent `plans/*.md` files must contain a `## Pre-Mortem` section with row counts matching the plan scale (squad >= 3, platoon+ >= 5). Recon-scale plans are exempt. Reference: `rules/review-protocol.md` §Pre-Mortem 必須化.
+  - **IND-28 `small-cls-split-decision-missing`** (workflow, minor): platoon+ plans must include a `## 分割判断` section (粒度評価 + 分割案 + 例外運用). Reference: `rules/small-cls-philosophy.md` §7.
+  - **IND-29 `adversarial-2nd-pass-not-recorded`** (workflow, major): recent `reviews/*_kurouto.md` files must include both Adversarial 2nd-Pass (Q1-Q5) and `evidence_level:` from the Evidence Level Ladder. Allows up to 20% non-conforming reviews when batch >= 5 (strict mode for smaller batches). Reference: `rules/clearwing-patterns.md` / `rules/review-protocol.md`.
+  - **IND-30 `brain-resolver-iron-law-weak`** (memory, minor): `memory/brain/RESOLVER.md` must mention at least 4 of 6 Iron Law keywords (fabrication / bias-check / source attribution / Iron Law / Compiled Truth / Timeline). Skipped if brain/ is not adopted. Reference: `rules/brain-ops.md`.
+  - **IND-31 `yoshi-binary-unavailable`** (hooks, minor): `yoshi` binary must respond to `--version` with v0.6.0+ (PowerShell deny avoidance). Skipped via `NEKO_HARNESS_SKIP_YOSHI` env var for CI environments. Reference: CLAUDE.md yoshi section, `feedback_no_external_api.md`.
+  - **IND-32 `lessons-bloat`** (memory, severity ladder): `memory/lessons/*.md` total line count thresholds — minor >= 500, major >= 1000, critical >= 2000. Reference: MEMORY.md health_check.
+  - **IND-33 `rules-bloat`** (memory, severity ladder): `.claude/rules/*.md` total line count thresholds — minor >= 1500, major >= 2500. Reference: `rules/config-management.md` §定量化指標.
+- **12 new test cases** covering PASS/FAIL paths for IND-27 through IND-33 (IND-31 is environment-dependent and exercised indirectly).
+
+### Changed
+- Total indicator count: 26 → 33. Hooks: 3 → 4, Memory: 3 → 6, Workflow: 3 → 6.
+- `src/indicators/index.mjs` sanity check: `expected 26` → `expected 33`.
+- Grade comparison across v0.3.x ↔ v0.4 is **not directly comparable**. The new indicators surface real harness hygiene issues (lessons/rules bloat, missing Pre-Mortem sections, reviews without Adversarial 2nd-Pass) that were invisible in v0.3.x. A v0.3.1 `grade S` workspace may show a lower v0.4 grade not because the workspace regressed but because more dimensions are now measured.
+
+### Migration notes
+- No code or config changes are required when upgrading from v0.3.1.
+- Expect the v0.4 grade to be **lower than the v0.3.1 grade** if any of the new dimensions reveal actual gaps. Address each new indicator individually via the recommended remediations.
+- IND-31 can be opted out via `NEKO_HARNESS_SKIP_YOSHI=1` for environments without yoshi.
+
 ## [0.3.1] - 2026-04-18
 
 ### Fixed

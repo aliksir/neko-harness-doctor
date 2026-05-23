@@ -451,9 +451,9 @@ test('IND-26: empty args array passes', () => {
   }
 });
 
-test('IND-26: INDICATORS.length is 26 (sanity check via import)', async () => {
+test('v0.4: INDICATORS.length is 33 (sanity check via import)', async () => {
   const { INDICATORS } = await import('../src/indicators/index.mjs');
-  assert.equal(INDICATORS.length, 26, 'should have exactly 26 indicators');
+  assert.equal(INDICATORS.length, 33, 'should have exactly 33 indicators (v0.4: 26 + 7 new = IND-27/28/29/30/31/32/33)');
   assert.ok(
     INDICATORS.some(i => i.id === 'IND-26'),
     'IND-26 should be present in INDICATORS',
@@ -488,3 +488,162 @@ test('audit.mjs: runs on a minimal workspace and exits 0', () => {
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+// ---------------------------------------------------------------------------
+// v0.4 new indicators (IND-27/28/29/30/31/32/33)
+// ---------------------------------------------------------------------------
+
+function makeWorkspaceWithPlans(dir, planFiles) {
+  makeMinimalWorkspace(dir);
+  mkdirSync(join(dir, 'plans'), { recursive: true });
+  for (const [name, content] of Object.entries(planFiles)) {
+    writeFileSync(join(dir, 'plans', name), content, 'utf8');
+  }
+}
+
+test('IND-27: plan with proper Pre-Mortem section passes', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'neko-hd-ind27-'));
+  try {
+    const planBody = `# 計画書\n- 規模: 小隊\n\n## Pre-Mortem\n\n| # | シナリオ | 原因 | 影響 | 予防策 |\n|---|---|---|---|---|\n| 1 | A | a | aa | aaa |\n| 2 | B | b | bb | bbb |\n| 3 | C | c | cc | ccc |\n`;
+    makeWorkspaceWithPlans(dir, { '20260524_ok.md': planBody });
+    const parsed = runAuditJson(dir);
+    const v = parsed.violations.find(x => x.id === 'IND-27');
+    assert.equal(v, undefined, 'IND-27 should not flag a well-formed Pre-Mortem');
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('IND-27: plan missing Pre-Mortem section fails', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'neko-hd-ind27-'));
+  try {
+    const planBody = `# 計画書\n- 規模: 小隊\n\n## スコープ\n- something\n`;
+    makeWorkspaceWithPlans(dir, { '20260524_bad.md': planBody });
+    const parsed = runAuditJson(dir);
+    const v = parsed.violations.find(x => x.id === 'IND-27');
+    assert.ok(v, 'IND-27 should flag a plan missing Pre-Mortem');
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('IND-28: platoon+ plan with 分割判断 passes', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'neko-hd-ind28-'));
+  try {
+    const planBody = `# 計画書\n- 規模: 中隊\n\n## Pre-Mortem\n\n| # | シナリオ | 原因 | 影響 | 予防策 |\n|---|---|---|---|---|\n| 1 | A | a | aa | aaa |\n| 2 | B | b | bb | bbb |\n| 3 | C | c | cc | ccc |\n| 4 | D | d | dd | ddd |\n| 5 | E | e | ee | eee |\n\n## 分割判断\n- 変更行数見込み: 100\n`;
+    makeWorkspaceWithPlans(dir, { '20260524_ok.md': planBody });
+    const parsed = runAuditJson(dir);
+    const v = parsed.violations.find(x => x.id === 'IND-28');
+    assert.equal(v, undefined, 'IND-28 should not flag platoon+ plan with 分割判断');
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('IND-28: platoon+ plan missing 分割判断 fails', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'neko-hd-ind28-'));
+  try {
+    const planBody = `# 計画書\n- 規模: 中隊\n\n## Pre-Mortem\n\n| # | シナリオ | 原因 | 影響 | 予防策 |\n|---|---|---|---|---|\n| 1 | A | a | aa | aaa |\n| 2 | B | b | bb | bbb |\n| 3 | C | c | cc | ccc |\n| 4 | D | d | dd | ddd |\n| 5 | E | e | ee | eee |\n`;
+    makeWorkspaceWithPlans(dir, { '20260524_bad.md': planBody });
+    const parsed = runAuditJson(dir);
+    const v = parsed.violations.find(x => x.id === 'IND-28');
+    assert.ok(v, 'IND-28 should flag platoon+ plan missing 分割判断');
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('IND-29: review with Q1-Q5 and evidence_level passes', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'neko-hd-ind29-'));
+  try {
+    makeMinimalWorkspace(dir);
+    mkdirSync(join(dir, 'reviews'), { recursive: true });
+    const body = `# Review\n\n## Adversarial 2nd-Pass\n- Q1: edge\n- Q2: criteria\n- Q3: risk\n\nevidence_level: test_passed\n`;
+    writeFileSync(join(dir, 'reviews', '20260524_ok_kurouto.md'), body, 'utf8');
+    const parsed = runAuditJson(dir);
+    const v = parsed.violations.find(x => x.id === 'IND-29');
+    assert.equal(v, undefined, 'IND-29 should not flag a review with Q1-Q5 + evidence_level');
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('IND-29: review missing evidence_level fails', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'neko-hd-ind29-'));
+  try {
+    makeMinimalWorkspace(dir);
+    mkdirSync(join(dir, 'reviews'), { recursive: true });
+    const body = `# Review\n\nLGTM, looks fine.\n`;
+    writeFileSync(join(dir, 'reviews', '20260524_bad_kurouto.md'), body, 'utf8');
+    const parsed = runAuditJson(dir);
+    const v = parsed.violations.find(x => x.id === 'IND-29');
+    assert.ok(v, 'IND-29 should flag a review missing Adversarial 2nd-Pass + evidence_level');
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('IND-30: brain RESOLVER.md absence is treated as skip (not failure)', () => {
+  // brain is opt-in; absence should not flag IND-30
+  const dir = mkdtempSync(join(tmpdir(), 'neko-hd-ind30-'));
+  try {
+    makeMinimalWorkspace(dir);
+    const parsed = runAuditJson(dir);
+    const v = parsed.violations.find(x => x.id === 'IND-30');
+    assert.equal(v, undefined, 'IND-30 should skip when brain/ is not present');
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('IND-30: brain RESOLVER.md with full Iron Law keywords passes', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'neko-hd-ind30-'));
+  try {
+    makeMinimalWorkspace(dir);
+    mkdirSync(join(dir, 'memory', 'brain'), { recursive: true });
+    const body = `# RESOLVER\n\n## Iron Law\n- fabrication prohibited\n- bias-check required\n- source attribution mandatory\n- Compiled Truth + Timeline structure\n`;
+    writeFileSync(join(dir, 'memory', 'brain', 'RESOLVER.md'), body, 'utf8');
+    const parsed = runAuditJson(dir);
+    const v = parsed.violations.find(x => x.id === 'IND-30');
+    assert.equal(v, undefined, 'IND-30 should not flag a RESOLVER.md with all Iron Law keywords');
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('IND-32: lessons/ under 500 lines passes', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'neko-hd-ind32-'));
+  try {
+    makeMinimalWorkspace(dir);
+    mkdirSync(join(dir, 'memory', 'lessons'), { recursive: true });
+    writeFileSync(join(dir, 'memory', 'lessons', 'a.md'), 'short\n'.repeat(50), 'utf8');
+    const parsed = runAuditJson(dir);
+    const v = parsed.violations.find(x => x.id === 'IND-32');
+    assert.equal(v, undefined, 'IND-32 should not flag <500 line lessons/');
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('IND-32: lessons/ over 500 lines fails', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'neko-hd-ind32-'));
+  try {
+    makeMinimalWorkspace(dir);
+    mkdirSync(join(dir, 'memory', 'lessons'), { recursive: true });
+    writeFileSync(join(dir, 'memory', 'lessons', 'big.md'), 'x\n'.repeat(600), 'utf8');
+    const parsed = runAuditJson(dir);
+    const v = parsed.violations.find(x => x.id === 'IND-32');
+    assert.ok(v, 'IND-32 should flag lessons/ >= 500 lines');
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('IND-33: rules/ under 1500 lines passes', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'neko-hd-ind33-'));
+  try {
+    makeMinimalWorkspace(dir);
+    mkdirSync(join(dir, '.claude', 'rules'), { recursive: true });
+    writeFileSync(join(dir, '.claude', 'rules', 'small.md'), 'rule\n'.repeat(100), 'utf8');
+    const parsed = runAuditJson(dir);
+    const v = parsed.violations.find(x => x.id === 'IND-33');
+    assert.equal(v, undefined, 'IND-33 should not flag <1500 line rules/');
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('IND-33: rules/ over 1500 lines fails', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'neko-hd-ind33-'));
+  try {
+    makeMinimalWorkspace(dir);
+    mkdirSync(join(dir, '.claude', 'rules'), { recursive: true });
+    writeFileSync(join(dir, '.claude', 'rules', 'huge.md'), 'r\n'.repeat(1600), 'utf8');
+    const parsed = runAuditJson(dir);
+    const v = parsed.violations.find(x => x.id === 'IND-33');
+    assert.ok(v, 'IND-33 should flag rules/ >= 1500 lines');
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+// IND-31 (yoshi-binary-operational) is environment-dependent (exec yoshi --version).
+// We don't test its PASS path here because CI environments may or may not have yoshi.
+// The opt-out env var NEKO_HARNESS_SKIP_YOSHI exists for that purpose, exercised
+// indirectly when audit.mjs runs on a minimal workspace and exits 0 (line above).
