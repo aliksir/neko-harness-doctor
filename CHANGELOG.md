@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Documentation
+- **IND-29 threshold logic clarified**: the `adversarial-2nd-pass-not-recorded` indicator allows up to 20% non-conforming reviews **only when batch size >= 5**. For smaller batches (< 5 reviews), the indicator runs in strict mode where even a single offender flags the issue. Rationale: small batches make percentage-based tolerance meaningless (1/3 = 33% is far worse than 1/100 = 1%), so we require zero non-conformance for the first 4 reviews. Source: kurouto-neko review of v0.4.0 release (`reviews/20260524_fullcourse-night-4tasks_kurouto.md` Findings #1).
+
 ## [0.4.0] - 2026-05-24
 
 ### Added
