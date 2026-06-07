@@ -1,83 +1,83 @@
+> For the Japanese version, see [README.ja.md](README.ja.md).
+
 # neko-harness-doctor
 
-> Claude Code のハーネスを 25 のアンチパターン指標で自動診断する、無料・オープンソースの CLI ツール
-
-[English README](./README.en.md) | 日本語
+> A free, open-source CLI tool that automatically diagnoses your Claude Code harness using 25 anti-pattern indicators.
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
 ![Node.js 18+](https://img.shields.io/badge/node-%3E%3D18-brightgreen.svg)
 ![Dependencies: 0](https://img.shields.io/badge/dependencies-0-blue.svg)
 
-## これは何
+## What is this?
 
-あなたの Claude Code 環境（`CLAUDE.md` / `settings.json` / `.mcp.json` / `hooks/` / `skills/` / `memory/` / `MCP` / `workflow`）を **25 のアンチパターン指標** で自動診断し、**S〜E のグレード** と **優先順位付き Quick Wins（改善提案）** を出力します。
+Automatically diagnoses your Claude Code environment (`CLAUDE.md` / `settings.json` / `.mcp.json` / `hooks/` / `skills/` / `memory/` / `MCP` / `workflow`) against **25 anti-pattern indicators**, outputting an **S-to-E grade** and **prioritized Quick Wins (improvement suggestions)**.
 
-## なぜ必要か
+## Why do you need this?
 
-Claude Code の出力品質がセッションごとにバラつく原因の多くは **ハーネス設計の構造的欠陥** にあります:
+Much of the inconsistency in Claude Code output quality across sessions comes from **structural flaws in harness design**:
 
-- `CLAUDE.md` が肥大化して KV-Cache 効率が悪化している
-- 重要なルールが中盤に埋もれていて Claude が読み落とす（Lost in the Middle）
-- `bypassPermissions` が有効になっていて気付かないうちに危険操作が実行されている
-- Skill の description が短すぎて Claude が正しく選択できない
-- MCP サーバーのバージョンが固定されていない
+- `CLAUDE.md` has grown too large, degrading KV-Cache efficiency
+- Important rules are buried in the middle and Claude misses them (Lost in the Middle)
+- `bypassPermissions` is enabled, silently allowing dangerous operations
+- Skill descriptions are too short for Claude to select correctly
+- MCP server versions are not pinned
 
-これらは個別に手で確認すると膨大な作業ですが、このツール1本で5〜15秒で全部チェックできます。
+Checking all of these manually is a huge effort, but this single tool covers everything in 5-15 seconds.
 
-## 特徴
+## Features
 
-- **25 アンチパターン指標**: 7 カテゴリを横断診断（CLAUDE.md構造 / settings / hooks / skills / memory / MCP / workflow）
-- **S〜E グレード評価**: ハイブリッド方式（PASS率 + Critical即降格、最大3段）
-- **Quick Wins**: 優先順位付き改善提案（デフォルト上位5件）
-- **対話的修正フロー**: `--fix-mode propose` で修正提案を JSON 出力。Claude Code 側で承認→ Edit tool で適用する透明なワークフロー
-- **Read-only**: CLI 本体は診断対象を**一切変更しません**。修正は常にユーザー承認後
-- **機械判定優先**: LLM 不使用、grep / AST / JSON 解析で**決定性**を保証
-- **i18n**: 日本語デフォルト、`--lang en` で英語切替
-- **依存ゼロ**: Node.js 18+ のみ、`npm install` 後すぐ実行可能
+- **25 Anti-Pattern Indicators**: Cross-cutting diagnosis across 7 categories (CLAUDE.md structure / settings / hooks / skills / memory / MCP / workflow)
+- **S-to-E Grade Evaluation**: Hybrid grading (PASS rate + Critical instant-demotion, up to 3 tiers)
+- **Quick Wins**: Prioritized improvement suggestions (top 5 by default)
+- **Interactive Fix Flow**: `--fix-mode propose` outputs fix proposals as JSON. Claude Code presents them for user approval and applies via the Edit tool -- a fully transparent workflow
+- **Read-only**: The CLI itself **never modifies** the target. Fixes are always applied after user approval
+- **Deterministic**: No LLM calls -- uses grep / AST / JSON parsing for **deterministic** results
+- **i18n**: Japanese by default, switch to English with `--lang en`
+- **Zero Dependencies**: Only requires Node.js 18+, ready to run after `npm install`
 
-## インストール
+## Installation
 
-### npm（推奨 — CLI 単体）
+### npm (recommended -- standalone CLI)
 
 ```bash
 npm install -g @aliksir/neko-harness-doctor
 ```
 
-### Claude Code プラグインとして
+### As a Claude Code Plugin
 
-このリポジトリは Claude Code プラグインとしても動作します。プラグインとして有効化すると:
+This repository also works as a Claude Code plugin. When enabled as a plugin:
 
-- `bin/neko-harness-doctor` が Bash ツールの PATH に自動追加される（ベアコマンドで呼べる）
-- バンドルされたスキルが `/neko-harness-doctor` スラッシュコマンドと「ハーネス診断して」などの自然言語トリガーに応答する
-- Claude が自動的に診断 → Quick Wins 提示 → 対話的修正フローを実行できる
+- `bin/neko-harness-doctor` is automatically added to the Bash tool's PATH (callable as a bare command)
+- The bundled skill responds to the `/neko-harness-doctor` slash command and natural language triggers like "diagnose my harness"
+- Claude can automatically run diagnosis, present Quick Wins, and execute the interactive fix flow
 
-**マーケットプレイス（申請中）**:
+**Marketplace (pending approval)**:
 
 ```bash
-# 承認後に利用可能
+# Available after approval
 claude plugin install neko-harness-doctor
 ```
 
-**ローカルテスト（申請前/自分でビルドしたい場合）**:
+**Local testing (pre-approval / building from source)**:
 
 ```bash
 git clone https://github.com/aliksir/neko-harness-doctor.git
 claude --plugin-dir ./neko-harness-doctor
-# セッション内で /neko-harness-doctor が使えるようになる
+# /neko-harness-doctor becomes available in the session
 ```
 
-プラグイン構造:
+Plugin structure:
 
 ```
 neko-harness-doctor/
-├── .claude-plugin/plugin.json      # マニフェスト
-├── bin/neko-harness-doctor         # プラグイン有効時 PATH に追加
+├── .claude-plugin/plugin.json      # Manifest
+├── bin/neko-harness-doctor         # Added to PATH when plugin is active
 ├── skills/neko-harness-doctor/
-│   └── SKILL.md                    # Claude auto-trigger + /name ショートカット
-└── src/                            # 25 指標ロジック本体
+│   └── SKILL.md                    # Claude auto-trigger + /name shortcut
+└── src/                            # 25 indicator logic
 ```
 
-### GitHub clone（生のスクリプト実行）
+### GitHub clone (run the raw script)
 
 ```bash
 git clone https://github.com/aliksir/neko-harness-doctor.git
@@ -85,44 +85,44 @@ cd neko-harness-doctor
 node bin/neko-harness-doctor --help
 ```
 
-## クイックスタート
+## Quick Start
 
 ```bash
-# ~/.claude/ を診断
+# Diagnose ~/.claude/
 neko-harness-doctor
 
-# 特定のディレクトリを診断
+# Diagnose a specific directory
 neko-harness-doctor --target ~/.claude --workspace ~/work/myproject
 
-# カテゴリ絞り込み
+# Filter by category
 neko-harness-doctor --category claude-md
 
-# JSON 出力
+# JSON output
 neko-harness-doctor --format json
 
-# 英語切替
+# Switch to English
 neko-harness-doctor --lang en
 
-# 修正提案モード（Claude Code から呼ぶとき）
+# Fix proposal mode (when called from Claude Code)
 neko-harness-doctor --fix-mode propose --format json
 ```
 
-## 出力例
+## Example Output
 
 ```markdown
-# neko-harness-doctor 診断結果
+# neko-harness-doctor Diagnosis Report
 
-- **対象**: ~/.claude
-- **総合グレード**: C (基本 B から Critical 1件で 1段降格)
-- **PASS率**: 17/25 (68.0%)
-- **Critical違反**: 1
-- **実行時刻**: 2026-04-11T21:48:00.000Z
+- **Target**: ~/.claude
+- **Overall Grade**: C (base B, demoted 1 tier due to 1 Critical violation)
+- **PASS Rate**: 17/25 (68.0%)
+- **Critical Violations**: 1
+- **Timestamp**: 2026-04-11T21:48:00.000Z
 
-## カテゴリ別スコア
+## Scores by Category
 
-| カテゴリ | PASS/指標 | Critical | Major | Minor |
+| Category | PASS/Total | Critical | Major | Minor |
 |---|---|---|---|---|
-| CLAUDE.md構造 | 2/5 | 1 | 1 | 1 |
+| CLAUDE.md Structure | 2/5 | 1 | 1 | 1 |
 | settings.json | 4/4 | 0 | 0 | 0 |
 | Hooks | 1/3 | 0 | 2 | 0 |
 | Skills | 1/4 | 0 | 2 | 1 |
@@ -130,16 +130,16 @@ neko-harness-doctor --fix-mode propose --format json
 | MCP | 3/3 | 0 | 0 | 0 |
 | Workflow | 3/3 | 0 | 0 | 0 |
 
-## 検出された問題
+## Detected Issues
 
 ### [CRITICAL] IND-03: critical-rules-not-in-first-third
-- **検出箇所**: ~/.claude/CLAUDE.md
-- **違反**: Earliest critical-rule heading at position=80.2% (outside first third)
-- **出典**: Liu et al. 2023 "Lost in the Middle" (arXiv:2307.03172)
-- **修正例**: Move critical rules to the first third (position 0 to 0.3) to avoid Lost-in-the-Middle
-- **自動修正**: 手動のみ
+- **Location**: ~/.claude/CLAUDE.md
+- **Violation**: Earliest critical-rule heading at position=80.2% (outside first third)
+- **Reference**: Liu et al. 2023 "Lost in the Middle" (arXiv:2307.03172)
+- **Remediation**: Move critical rules to the first third (position 0 to 0.3) to avoid Lost-in-the-Middle
+- **Auto-fixable**: Manual only
 
-## Quick Wins（優先順位）
+## Quick Wins (Prioritized)
 
 1. **[CRITICAL]** IND-03 critical-rules-not-in-first-third — Move critical rules to the first third
 2. **[MAJOR]** IND-05 volatile-elements-not-at-tail — Consolidate volatile elements at the tail
@@ -147,9 +147,9 @@ neko-harness-doctor --fix-mode propose --format json
 ...
 ```
 
-## 対話的修正フロー（Claude Code 連携）
+## Interactive Fix Flow (Claude Code Integration)
 
-`--fix-mode propose` を使うと、修正提案を JSON で出力できます。Claude Code はこれを読んで、ユーザーに承認を求めた上で `Edit` tool を使って修正を適用します:
+Using `--fix-mode propose` outputs fix proposals as JSON. Claude Code reads these, asks the user for approval, then applies fixes using the `Edit` tool:
 
 ```json
 [
@@ -180,40 +180,40 @@ neko-harness-doctor --fix-mode propose --format json
 ]
 ```
 
-**原則**: CLI は提案のみ。実際の修正はユーザー承認後に Claude Code が `Edit` tool で行うため、完全に透明で差分プレビュー可能です。
+**Principle**: The CLI only proposes. Actual fixes are applied by Claude Code using the `Edit` tool after user approval, making everything fully transparent with diff preview.
 
-## 25 指標の一覧
+## All 25 Indicators
 
-| カテゴリ | 指標数 | 主な内容 |
+| Category | Count | Key Areas |
 |---|---|---|
-| CLAUDE.md構造 | 5 | 行数肥大化 / プレフィックス不安定 / Lost in the Middle / 重複セクション / 時変要素の末尾配置 |
-| settings.json | 4 | bypassPermissions / auto-accept全許可 / permissions過剰 / hooks未設定 |
-| Hooks | 3 | エラーハンドリング欠落 / 副作用リスク / PostToolUse乱用 |
-| Skills | 4 | description不十分 / trigger曖昧 / risk未設定 / namespace衝突 |
-| Memory | 3 | MEMORY.md肥大化 / lesson散逸 / ポインタ切れ |
-| MCP | 3 | バージョン固定なし / 説明文不十分 / サプライチェーン未検証 |
-| Workflow | 3 | ゲート定義不在 / 計画書運用不備 / review-protocol不在 |
+| CLAUDE.md Structure | 5 | Line count bloat / Prefix instability / Lost in the Middle / Duplicate sections / Volatile elements at tail |
+| settings.json | 4 | bypassPermissions / Auto-accept all / Excessive permissions / No hooks configured |
+| Hooks | 3 | Missing error handling / Side-effect risk / PostToolUse overuse |
+| Skills | 4 | Insufficient description / Ambiguous trigger / No risk setting / Namespace collision |
+| Memory | 3 | MEMORY.md bloat / Scattered lessons / Broken pointers |
+| MCP | 3 | Unpinned versions / Insufficient descriptions / Unverified supply chain |
+| Workflow | 3 | Missing gate definitions / Poor plan management / Missing review-protocol |
 
-詳細は [docs/indicators.md](./docs/indicators.md) を参照。
+See [docs/indicators.md](./docs/indicators.md) for details.
 
-## グレード仕様
+## Grading Specification
 
-基本グレードは PASS 率で決定、Critical 違反 1 件につき 1 段階降格（最大3段）。
+The base grade is determined by PASS rate, with 1-tier demotion per Critical violation (max 3 tiers).
 
-| グレード | PASS率 |
+| Grade | PASS Rate |
 |---|---|
-| S | ≥ 90% |
-| A | ≥ 75% |
-| B | ≥ 60% |
-| C | ≥ 45% |
-| D | ≥ 30% |
+| S | >= 90% |
+| A | >= 75% |
+| B | >= 60% |
+| C | >= 45% |
+| D | >= 30% |
 | E | < 30% |
 
-詳細は [docs/grading.md](./docs/grading.md) を参照。
+See [docs/grading.md](./docs/grading.md) for details.
 
-## 設定ファイル
+## Configuration
 
-`~/.neko-harness-doctor/config.json` で MCP publisher allowlist 等を拡張できます:
+Extend the MCP publisher allowlist and other settings via `~/.neko-harness-doctor/config.json`:
 
 ```json
 {
@@ -227,68 +227,68 @@ neko-harness-doctor --fix-mode propose --format json
 }
 ```
 
-詳細は [docs/configuration.md](./docs/configuration.md) を参照。
+See [docs/configuration.md](./docs/configuration.md) for details.
 
-## オプション一覧
+## Options
 
 ```
---target <path>       診断対象ディレクトリ（デフォルト: ~/.claude/）
---workspace <path>    plans/checklist/rules等を探す作業ディレクトリ
---format <fmt>        出力形式 json|markdown（デフォルト: markdown）
---category <name>     特定カテゴリのみ診断
---severity <level>    最小Severity critical|major|minor（デフォルト: minor）
---top <n>             Quick Wins の上位件数（デフォルト: 5）
---fix-mode <mode>     修正提案モード: off|propose（デフォルト: off）
---lang <lang>         出力言語 ja|en（デフォルト: ja）
---quiet               違反のみ表示
---help                ヘルプ表示
+--target <path>       Target directory to diagnose (default: ~/.claude/)
+--workspace <path>    Working directory to look for plans/checklist/rules
+--format <fmt>        Output format: json|markdown (default: markdown)
+--category <name>     Diagnose a specific category only
+--severity <level>    Minimum severity: critical|major|minor (default: minor)
+--top <n>             Number of top Quick Wins to display (default: 5)
+--fix-mode <mode>     Fix proposal mode: off|propose (default: off)
+--lang <lang>         Output language: ja|en (default: ja)
+--quiet               Show violations only
+--help                Show help
 
-環境変数:
-  NEKO_HARNESS_WORKSPACE  --workspace のフォールバック
+Environment variables:
+  NEKO_HARNESS_WORKSPACE  Fallback for --workspace
 
-終了コード:
-  0 - 診断完了
-  1 - 診断対象が見つからない
-  2 - 内部エラー
+Exit codes:
+  0 - Diagnosis completed
+  1 - Target not found
+  2 - Internal error
 ```
 
-## 既存の類似ツールとの違い
+## Comparison with Similar Tools
 
-| ツール | 守備範囲 | neko-harness-doctor との関係 |
+| Tool | Scope | Relationship to neko-harness-doctor |
 |---|---|---|
-| `skill-security-check` | Skill 単体のセキュリティ監査 | 補完（本ツールは Skill 構造の横断監査のみ） |
-| `cc-skill-security-review` | コード変更のセキュリティレビュー | 補完（本ツールは実装済み設定の監査） |
-| `analyze-permissions` | settings.json 権限分析 | 補完（本ツールはさらに広い8領域を横断診断） |
+| `skill-security-check` | Security audit for individual Skills | Complementary (this tool only does cross-cutting Skill structure audits) |
+| `cc-skill-security-review` | Security review of code changes | Complementary (this tool audits deployed configuration) |
+| `analyze-permissions` | settings.json permission analysis | Complementary (this tool diagnoses across 8 broader areas) |
 
 ## FAQ
 
-**Q: LLM を呼び出しますか？**
-A: いいえ。全て grep / AST / JSON 解析で決定的に判定します。同じ入力なら常に同じ出力です。CI 統合に最適。
+**Q: Does it call an LLM?**
+A: No. All checks are deterministic using grep / AST / JSON parsing. Same input always produces the same output. Ideal for CI integration.
 
-**Q: ファイルを書き換えますか？**
-A: **CLI 本体は一切書き換えません**。修正は `--fix-mode propose` で提案 JSON を出力するところまで。実際の適用は Claude Code が `Edit` tool で行います（ユーザー承認後）。
+**Q: Does it modify my files?**
+A: **The CLI itself never modifies anything.** Fixes go as far as outputting proposal JSON via `--fix-mode propose`. Actual changes are applied by Claude Code using the `Edit` tool (after user approval).
 
-**Q: 依存パッケージは？**
-A: runtime 依存ゼロ。Node.js 18+ の stdlib のみで動作します。
+**Q: Any dependencies?**
+A: Zero runtime dependencies. Runs on Node.js 18+ stdlib only.
 
-**Q: 指標を追加・カスタマイズできますか？**
-A: v0.2.0 時点ではビルトイン 25 指標のみ。ユーザー定義指標は将来検討。publisher allowlist 等の閾値は `~/.neko-harness-doctor/config.json` で拡張可能。
+**Q: Can I add or customize indicators?**
+A: As of v0.2.0, only the built-in 25 indicators are available. User-defined indicators are planned for the future. Thresholds like the publisher allowlist can be extended via `~/.neko-harness-doctor/config.json`.
 
-## ライセンス
+## License
 
 [MIT](./LICENSE)
 
 ## Acknowledgments
 
-- **Liu et al. 2023** "Lost in the Middle" (arXiv:2307.03172) — IND-03 の根拠
-- **Anthropic Prompt Caching Guide** — IND-01/02/05 の根拠
-- **OpenSSF Secure Supply Chain Best Practices** — IND-20/22 の根拠
-- **IEEE peer review standard / Four Eyes Principle** — IND-25 の根拠
+- **Liu et al. 2023** "Lost in the Middle" (arXiv:2307.03172) -- basis for IND-03
+- **Anthropic Prompt Caching Guide** -- basis for IND-01/02/05
+- **OpenSSF Secure Supply Chain Best Practices** -- basis for IND-20/22
+- **IEEE peer review standard / Four Eyes Principle** -- basis for IND-25
 
-## ロードマップ
+## Roadmap
 
-- [x] **v0.1.0** — 25指標初版、i18n、fix-mode=propose
-- [x] **v0.2.0** — shell hook 対応（IND-10）、`hd-ignore` インライン除外、外部スキル除外（`--skip-external`）、CRLF パースバグ修正、CI/テストスイート
-- [ ] **v0.3.0** — ESLint 導入、ユーザー定義指標、MCPツール説明文の実測（起動時動的取得）
-- [ ] **v0.4.0** — IND-22 の postinstall 実測統合
-- [ ] **v1.0.0** — 安定版リリース
+- [x] **v0.1.0** -- Initial 25 indicators, i18n, fix-mode=propose
+- [x] **v0.2.0** -- Shell hook support (IND-10), `hd-ignore` inline exclusion, external skill exclusion (`--skip-external`), CRLF parse bug fix, CI/test suite
+- [ ] **v0.3.0** -- ESLint integration, user-defined indicators, live MCP tool description measurement (dynamic fetch at startup)
+- [ ] **v0.4.0** -- IND-22 postinstall live measurement integration
+- [ ] **v1.0.0** -- Stable release
