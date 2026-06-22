@@ -1,4 +1,4 @@
-// memory.mjs - Memory indicators (IND-17 to IND-19, IND-30, IND-32, IND-33)
+// memory.mjs - Memory indicators (IND-17 to IND-19, IND-30, IND-32, IND-33, IND-34)
 
 import { existsSync } from 'fs';
 import { resolve, dirname, join } from 'path';
@@ -217,6 +217,56 @@ export const memoryIndicators = [
         location: rulesDir,
         remediation: 'Move large rules files to rules-ondemand/ and replace originals with pointer files (KV-cache hit rate).',
       };
+    },
+  },
+
+  // IND-34: インデックスファイルのリンク切れ検出（dev-lessons.md等）
+  {
+    id: 'IND-34',
+    category: 'memory',
+    name: 'index-file-broken-links',
+    severity: 'major',
+    evidence: 'Reference integrity (lessons pruning / archive operations break links)',
+    autoFixable: false,
+    fixStrategy: null,
+    check(ctx) {
+      const candidates = [
+        join(ctx.target, 'memory', 'dev-lessons.md'),
+      ];
+      if (ctx.workspace) {
+        candidates.push(join(ctx.workspace, 'memory', 'dev-lessons.md'));
+      }
+      let indexFile = null;
+      for (const c of candidates) {
+        if (existsSync(c)) { indexFile = c; break; }
+      }
+      if (!indexFile) return { passed: true, note: 'dev-lessons.md not found' };
+
+      const content = safeRead(indexFile);
+      if (!content) return { passed: true };
+
+      const baseDir = dirname(indexFile);
+      const linkPattern = /\[([^\]]*)\]\(([^)]+)\)/g;
+      const broken = [];
+      let match;
+      while ((match = linkPattern.exec(content)) !== null) {
+        const linkText = match[1];
+        const linkPath = match[2];
+        if (linkPath.startsWith('http') || linkPath.startsWith('#')) continue;
+        if (linkText.startsWith('_archived')) continue;
+        const resolved = resolve(baseDir, linkPath);
+        if (!existsSync(resolved)) broken.push(linkPath);
+      }
+
+      if (broken.length > 0) {
+        return {
+          passed: false,
+          violation: `${broken.length} broken link(s) in dev-lessons.md: ${broken.slice(0, 5).join(', ')}`,
+          location: indexFile,
+          remediation: 'Update links to point to consolidated/archived files, or restore the missing files.',
+        };
+      }
+      return { passed: true };
     },
   },
 ];

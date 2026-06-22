@@ -1,4 +1,4 @@
-// workflow.mjs - Workflow indicators (IND-23 to IND-25, IND-27 to IND-29)
+// workflow.mjs - Workflow indicators (IND-23 to IND-25, IND-27 to IND-29, IND-35)
 
 import { existsSync } from 'fs';
 import { join } from 'path';
@@ -305,6 +305,42 @@ export const workflowIndicators = [
         violation: `${offenders.length}/${checked} reviews lack Adversarial 2nd-Pass or evidence_level: ${offenders.slice(0, 3).join(', ')}`,
         remediation: 'kurouto-neko reviews must include Q1-Q5 (Adversarial 2nd-Pass) and `evidence_level: <ladder>`. See rules/review-protocol.md §Adversarial Second-Pass.',
       };
+    },
+  },
+
+  // IND-35: 完了ゲートにルール結線確認が存在するか
+  {
+    id: 'IND-35',
+    category: 'workflow',
+    name: 'rule-wiring-gate-present',
+    severity: 'major',
+    evidence: 'Code-wiring principle (rules/code-wiring-principle.md)',
+    autoFixable: false,
+    fixStrategy: null,
+    check(ctx) {
+      if (!ctx.workspace) return { passed: true, note: 'no workspace specified' };
+      const gateFiles = [
+        { name: 'gates-complete-mini.md', label: 'mini' },
+        { name: 'gates-complete-full.md', label: 'full' },
+      ];
+      const missing = [];
+      for (const gf of gateFiles) {
+        const p = join(ctx.workspace, '.claude', 'gates', gf.name);
+        if (!existsSync(p)) continue;
+        const content = safeRead(p);
+        if (!content) continue;
+        if (!/ルール結線確認/.test(content)) {
+          missing.push(gf.label);
+        }
+      }
+      if (missing.length > 0) {
+        return {
+          passed: false,
+          violation: `Completion gate(s) missing rule-wiring check: ${missing.join(', ')}`,
+          remediation: 'Add a "ルール結線確認" item to completion gates. See rules/code-wiring-principle.md.',
+        };
+      }
+      return { passed: true };
     },
   },
 ];
