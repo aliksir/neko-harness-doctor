@@ -127,6 +127,58 @@ export const hooksIndicators = [
   // -------------------------------------------------------------------------
 
   {
+    id: 'IND-36',
+    category: 'hooks',
+    name: 'hook-settings-unregistered',
+    severity: 'major',
+    evidence: 'code-wiring-principle.md — hooks/ にファイルがあるが settings.json に未登録',
+    autoFixable: false,
+    fixStrategy: null,
+    check(ctx) {
+      const files = findHookScripts(ctx.target);
+      if (files.length === 0) return { passed: true, note: 'hooks/ なし' };
+
+      // settings.json から登録済みhookコマンドを収集
+      const settings = findSettingsJson(ctx.target);
+      if (!settings) return { passed: true, note: 'settings.json なし' };
+      const json = parseJSON(safeRead(settings));
+      if (!json?.hooks) return { passed: true, note: 'hooks セクションなし' };
+
+      // 全hookエントリのcommandからファイル名を抽出
+      const registered = new Set();
+      for (const phase of ['PreToolUse', 'PostToolUse']) {
+        const entries = json.hooks[phase];
+        if (!Array.isArray(entries)) continue;
+        for (const e of entries) {
+          const cmd = e?.command || '';
+          // "node path/to/hook.mjs" からbasename抽出
+          const parts = cmd.split(/[\s/\\]+/);
+          const last = parts[parts.length - 1];
+          if (last) registered.add(last);
+        }
+      }
+
+      // hooks/ 内ファイルで settings.json に未登録のものを検出
+      const unregistered = [];
+      for (const f of files) {
+        const name = basename(f);
+        if (hasIgnoreDirective(safeRead(f) || '', 'IND-36')) continue;
+        if (!registered.has(name)) unregistered.push(name);
+      }
+
+      if (unregistered.length > 0) {
+        return {
+          passed: false,
+          violation: `${unregistered.length} hook(s) が settings.json に未登録: ${unregistered.slice(0, 5).join(', ')}`,
+          location: settings,
+          remediation: 'settings.json の hooks.PreToolUse/PostToolUse にエントリを追加するか、不要なhookファイルを削除してください',
+        };
+      }
+      return { passed: true };
+    },
+  },
+
+  {
     id: 'IND-31',
     category: 'hooks',
     name: 'yoshi-binary-unavailable',

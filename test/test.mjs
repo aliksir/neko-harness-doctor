@@ -451,9 +451,9 @@ test('IND-26: empty args array passes', () => {
   }
 });
 
-test('v0.4: INDICATORS.length is 33 (sanity check via import)', async () => {
+test('v0.4: INDICATORS.length is 36 (sanity check via import)', async () => {
   const { INDICATORS } = await import('../src/indicators/index.mjs');
-  assert.equal(INDICATORS.length, 33, 'should have exactly 33 indicators (v0.4: 26 + 7 new = IND-27/28/29/30/31/32/33)');
+  assert.equal(INDICATORS.length, 36, 'should have exactly 36 indicators (v0.4.1+: 35 + IND-36 hook-wire-check)');
   assert.ok(
     INDICATORS.some(i => i.id === 'IND-26'),
     'IND-26 should be present in INDICATORS',
