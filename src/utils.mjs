@@ -240,10 +240,14 @@ export function findMcpJson(target, workspace) {
   return null;
 }
 
+// hookファイル拡張子の統一定数（findHookScripts / IND-37 / IND-39 で共有）
+export const HOOK_EXTENSIONS = ['mjs', 'js', 'sh', 'ps1'];
+export const HOOK_FILE_RE = new RegExp(`\\.(${HOOK_EXTENSIONS.join('|')})$`);
+
 export function findHookScripts(target) {
   const hooksDir = join(target, 'hooks');
   if (!existsSync(hooksDir)) return [];
-  return walkFiles(hooksDir, /\.(mjs|js|sh)$/);
+  return walkFiles(hooksDir, HOOK_FILE_RE);
 }
 
 // ===========================================================================

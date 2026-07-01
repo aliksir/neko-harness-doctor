@@ -2,7 +2,7 @@
 
 import { basename, join } from 'path';
 import { execSync } from 'child_process';
-import { safeRead, parseJSON, findHookScripts, findSettingsJson, safeList } from '../utils.mjs';
+import { safeRead, parseJSON, findHookScripts, findSettingsJson, safeList, HOOK_EXTENSIONS, HOOK_FILE_RE } from '../utils.mjs';
 
 /**
  * Detect if a hook script has some form of error handling.
@@ -251,9 +251,10 @@ const wiringIndicators = [
       const overview = safeRead(join(ctx.target, 'hooks', 'hooks-overview.md'));
       if (!overview) return { passed: true, note: 'hooks-overview.md not found' };
 
-      // overview からバッククォート引用のhookファイル名を抽出
+      // overview からバッククォート引用のhookファイル名を抽出（拡張子はHOOK_EXTENSIONS統一定数）
       const documented = new Set();
-      for (const m of overview.matchAll(/`([a-z][-a-z0-9_.]*\.(?:mjs|sh|ps1))`/g)) {
+      const overviewRe = new RegExp('`([a-z][-a-z0-9_.]*\\.(?:' + HOOK_EXTENSIONS.join('|') + '))`', 'g');
+      for (const m of overview.matchAll(overviewRe)) {
         documented.add(m[1]);
       }
 
@@ -266,7 +267,7 @@ const wiringIndicators = [
           const name = ent.name;
           // バックアップ・テスト・隠しファイルはスキップ
           if (name.endsWith('.bak') || name.includes('.test.') || name.startsWith('.')) continue;
-          if (/\.(mjs|sh|ps1)$/.test(name)) actual.add(name);
+          if (HOOK_FILE_RE.test(name)) actual.add(name);
         }
       }
 
@@ -339,7 +340,8 @@ const wiringIndicators = [
       const overview = safeRead(join(ctx.target, 'hooks', 'hooks-overview.md'));
       const documented = new Set();
       if (overview) {
-        for (const m of overview.matchAll(/`([a-z][-a-z0-9_.]*\.(?:mjs|sh|ps1))`/g)) {
+        const ovRe = new RegExp('`([a-z][-a-z0-9_.]*\\.(?:' + HOOK_EXTENSIONS.join('|') + '))`', 'g');
+        for (const m of overview.matchAll(ovRe)) {
           documented.add(m[1]);
         }
       }
@@ -352,7 +354,7 @@ const wiringIndicators = [
           if (!ent.isFile()) continue;
           const name = ent.name;
           if (name.endsWith('.bak') || name.includes('.test.') || name.startsWith('.')) continue;
-          if (/\.(mjs|sh|ps1)$/.test(name)) actual.add(name);
+          if (HOOK_FILE_RE.test(name)) actual.add(name);
         }
       }
 
