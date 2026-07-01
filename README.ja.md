@@ -3,7 +3,7 @@
 
 # neko-harness-doctor
 
-> Claude Code のハーネスを 25 のアンチパターン指標で自動診断する、無料・オープンソースの CLI ツール
+> Claude Code のハーネスを 39 のアンチパターン指標で自動診断する、無料・オープンソースの CLI ツール
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
 ![Node.js 18+](https://img.shields.io/badge/node-%3E%3D18-brightgreen.svg)
@@ -11,7 +11,7 @@
 
 ## これは何
 
-あなたの Claude Code 環境（`CLAUDE.md` / `settings.json` / `.mcp.json` / `hooks/` / `skills/` / `memory/` / `MCP` / `workflow`）を **25 のアンチパターン指標** で自動診断し、**S~E のグレード** と **優先順位付き Quick Wins（改善提案）** を出力します。
+あなたの Claude Code 環境（`CLAUDE.md` / `settings.json` / `.mcp.json` / `hooks/` / `skills/` / `memory/` / `MCP` / `workflow`）を **39 のアンチパターン指標** で自動診断し、**S~E のグレード** と **優先順位付き Quick Wins（改善提案）** を出力します。
 
 ## なぜ必要か
 
@@ -27,7 +27,7 @@ Claude Code の出力品質がセッションごとにバラつく原因の多�
 
 ## 特徴
 
-- **25 アンチパターン指標**: 7 カテゴリを横断診断（CLAUDE.md構造 / settings / hooks / skills / memory / MCP / workflow）
+- **39 アンチパターン指標**: 7 カテゴリを横断診断（CLAUDE.md構造 / settings / hooks / skills / memory / MCP / workflow）
 - **S~E グレード評価**: ハイブリッド方式（PASS率 + Critical即降格、最大3段）
 - **Quick Wins**: 優先順位付き改善提案（デフォルト上位5件）
 - **対話的修正フロー**: `--fix-mode propose` で修正提案を JSON 出力。Claude Code 側で承認→ Edit tool で適用する透明なワークフロー
@@ -75,7 +75,7 @@ neko-harness-doctor/
 ├── bin/neko-harness-doctor         # プラグイン有効時 PATH に追加
 ├── skills/neko-harness-doctor/
 │   └── SKILL.md                    # Claude auto-trigger + /name ショートカット
-└── src/                            # 25 指標ロジック本体
+└── src/                            # 39 指標ロジック本体
 ```
 
 ### GitHub clone（生のスクリプト実行）
@@ -183,7 +183,7 @@ neko-harness-doctor --fix-mode propose --format json
 
 **原則**: CLI は提案のみ。実際の修正はユーザー承認後に Claude Code が `Edit` tool で行うため、完全に透明で差分プレビュー可能です。
 
-## 25 指標の一覧
+## 39 指標の一覧
 
 | カテゴリ | 指標数 | 主な内容 |
 |---|---|---|
@@ -273,7 +273,7 @@ A: **CLI 本体は一切書き換えません**。修正は `--fix-mode propose`
 A: runtime 依存ゼロ。Node.js 18+ の stdlib のみで動作します。
 
 **Q: 指標を追加・カスタマイズできますか？**
-A: v0.2.0 時点ではビルトイン 25 指標のみ。ユーザー定義指標は将来検討。publisher allowlist 等の閾値は `~/.neko-harness-doctor/config.json` で拡張可能。
+A: v0.2.0 時点ではビルトイン 39 指標のみ。ユーザー定義指標は将来検討。publisher allowlist 等の閾値は `~/.neko-harness-doctor/config.json` で拡張可能。
 
 ## ライセンス
 

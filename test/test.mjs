@@ -451,9 +451,9 @@ test('IND-26: empty args array passes', () => {
   }
 });
 
-test('v0.4: INDICATORS.length is 36 (sanity check via import)', async () => {
+test('v0.5: INDICATORS.length is 39 (sanity check via import)', async () => {
   const { INDICATORS } = await import('../src/indicators/index.mjs');
-  assert.equal(INDICATORS.length, 36, 'should have exactly 36 indicators (v0.4.1+: 35 + IND-36 hook-wire-check)');
+  assert.equal(INDICATORS.length, 39, 'should have exactly 39 indicators (v0.5.0: +IND-37/38/39 wiring detection)');
   assert.ok(
     INDICATORS.some(i => i.id === 'IND-26'),
     'IND-26 should be present in INDICATORS',
@@ -647,3 +647,133 @@ test('IND-33: rules/ over 1500 lines fails', () => {
 // We don't test its PASS path here because CI environments may or may not have yoshi.
 // The opt-out env var NEKO_HARNESS_SKIP_YOSHI exists for that purpose, exercised
 // indirectly when audit.mjs runs on a minimal workspace and exits 0 (line above).
+
+// ---------------------------------------------------------------------------
+// v0.5 wiring indicators (IND-37/38/39)
+// ---------------------------------------------------------------------------
+
+function makeWorkspaceWithHooks(dir, overviewContent, hookFiles) {
+  makeMinimalWorkspace(dir);
+  mkdirSync(join(dir, 'hooks', 'pre_tool_use'), { recursive: true });
+  mkdirSync(join(dir, 'hooks', 'post_tool_use'), { recursive: true });
+  if (overviewContent) {
+    writeFileSync(join(dir, 'hooks', 'hooks-overview.md'), overviewContent, 'utf8');
+  }
+  for (const [subdir, name, content] of (hookFiles || [])) {
+    writeFileSync(join(dir, 'hooks', subdir, name), content, 'utf8');
+  }
+}
+
+test('IND-37: hooks-overview matches actual files → PASS', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'neko-hd-ind37-'));
+  try {
+    const overview = '| `my-guard.mjs` | Read | blocks bad stuff | High |';
+    makeWorkspaceWithHooks(dir, overview, [
+      ['pre_tool_use', 'my-guard.mjs', '// hook\ntry { } catch(e) { }'],
+    ]);
+    const parsed = runAuditJson(dir);
+    const v = parsed.violations.find(x => x.id === 'IND-37');
+    assert.equal(v, undefined, 'IND-37 should PASS when overview matches files');
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('IND-37: undocumented hook file → FAIL', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'neko-hd-ind37f-'));
+  try {
+    const overview = '| `my-guard.mjs` | Read | blocks bad stuff | High |';
+    makeWorkspaceWithHooks(dir, overview, [
+      ['pre_tool_use', 'my-guard.mjs', '// hook\ntry { } catch(e) { }'],
+      ['pre_tool_use', 'secret-guard.mjs', '// undocumented\ntry { } catch(e) { }'],
+    ]);
+    const parsed = runAuditJson(dir);
+    const v = parsed.violations.find(x => x.id === 'IND-37');
+    assert.ok(v, 'IND-37 should FAIL when hook file is undocumented');
+    assert.match(v.violation, /secret-guard\.mjs/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('IND-37: documented hook missing from disk → FAIL', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'neko-hd-ind37m-'));
+  try {
+    const overview = '| `my-guard.mjs` | Read | x | H |\n| `phantom.mjs` | Write | y | M |';
+    makeWorkspaceWithHooks(dir, overview, [
+      ['pre_tool_use', 'my-guard.mjs', '// hook\ntry { } catch(e) { }'],
+    ]);
+    const parsed = runAuditJson(dir);
+    const v = parsed.violations.find(x => x.id === 'IND-37');
+    assert.ok(v, 'IND-37 should FAIL when documented hook is missing from disk');
+    assert.match(v.violation, /phantom\.mjs/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('IND-37: no hooks-overview.md → PASS (skip)', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'neko-hd-ind37s-'));
+  try {
+    makeWorkspaceWithHooks(dir, null, [
+      ['pre_tool_use', 'my-guard.mjs', '// hook\ntry { } catch(e) { }'],
+    ]);
+    const parsed = runAuditJson(dir);
+    const v = parsed.violations.find(x => x.id === 'IND-37');
+    assert.equal(v, undefined, 'IND-37 should PASS when no overview exists');
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('IND-38: all hooks reference rules → PASS', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'neko-hd-ind38-'));
+  try {
+    makeWorkspaceWithHooks(dir, null, [
+      ['pre_tool_use', 'a.mjs', '// Enforces: rules/security.md\ntry { } catch(e) { }'],
+      ['pre_tool_use', 'b.mjs', '// CLAUDE.md pii_safety\ntry { } catch(e) { }'],
+      ['post_tool_use', 'c.mjs', '// CR-1 compliance\ntry { } catch(e) { }'],
+    ]);
+    const parsed = runAuditJson(dir);
+    const v = parsed.violations.find(x => x.id === 'IND-38');
+    assert.equal(v, undefined, 'IND-38 should PASS when all hooks reference rules');
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('IND-38: 3+ hooks without rule reference → FAIL', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'neko-hd-ind38f-'));
+  try {
+    makeWorkspaceWithHooks(dir, null, [
+      ['pre_tool_use', 'a.mjs', '// no reference\ntry { } catch(e) { }'],
+      ['pre_tool_use', 'b.mjs', '// just a hook\ntry { } catch(e) { }'],
+      ['pre_tool_use', 'c.mjs', '// another hook\ntry { } catch(e) { }'],
+      ['post_tool_use', 'd.mjs', '// Enforces: rules/security.md\ntry { } catch(e) { }'],
+    ]);
+    const parsed = runAuditJson(dir);
+    const v = parsed.violations.find(x => x.id === 'IND-38');
+    assert.ok(v, 'IND-38 should FAIL when 3+ hooks lack rule references');
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('IND-39: high wiring coverage → PASS', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'neko-hd-ind39-'));
+  try {
+    const overview = '| `a.mjs` | R | x | H |\n| `b.mjs` | R | x | H |';
+    makeWorkspaceWithHooks(dir, overview, [
+      ['pre_tool_use', 'a.mjs', '// Enforces: rules/security.md\ntry { } catch(e) { }'],
+      ['pre_tool_use', 'b.mjs', '// CLAUDE.md pii_safety\ntry { } catch(e) { }'],
+    ]);
+    const parsed = runAuditJson(dir);
+    const v = parsed.violations.find(x => x.id === 'IND-39');
+    assert.equal(v, undefined, 'IND-39 should PASS with high coverage');
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('IND-39: low wiring coverage → FAIL', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'neko-hd-ind39f-'));
+  try {
+    const overview = '| `a.mjs` | R | x | H |';
+    makeWorkspaceWithHooks(dir, overview, [
+      ['pre_tool_use', 'a.mjs', '// no ref\ntry { } catch(e) { }'],
+      ['pre_tool_use', 'b.mjs', '// no ref\ntry { } catch(e) { }'],
+      ['pre_tool_use', 'c.mjs', '// no ref\ntry { } catch(e) { }'],
+      ['pre_tool_use', 'd.mjs', '// no ref\ntry { } catch(e) { }'],
+      ['post_tool_use', 'e.mjs', '// no ref\ntry { } catch(e) { }'],
+    ]);
+    const parsed = runAuditJson(dir);
+    const v = parsed.violations.find(x => x.id === 'IND-39');
+    assert.ok(v, 'IND-39 should FAIL with low coverage');
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});

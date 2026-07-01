@@ -1,6 +1,6 @@
-# 26 Indicators
+# 39 Indicators
 
-Full reference for each of the 26 anti-pattern indicators evaluated by neko-harness-doctor.
+Full reference for each of the 39 anti-pattern indicators evaluated by neko-harness-doctor.
 
 **Source of truth**: `src/indicators/*.mjs` and `src/indicators/index.mjs`.
 This document is a human-readable projection of the implementation.
@@ -9,18 +9,16 @@ This document is a human-readable projection of the implementation.
 
 ## Category breakdown
 
-| Category | Indicators | Fixed Severity | Dynamic |
-|---|---|---|---|
-| CLAUDE.md structure | 5 | 3 critical fixed + 14 major + 7 minor | 1 (IND-01) |
-| settings.json | 4 | | |
-| Hooks | 3 | | |
-| Skills | 4 | | |
-| Memory | 3 | | |
-| MCP | 4 | | |
-| Workflow | 3 | | |
-| **Total** | **26** | **4+14+7** | **1** |
-
-**Arithmetic**: 4 + 14 + 7 + 1 = 26 ✅
+| Category | Indicators | IDs |
+|---|---|---|
+| CLAUDE.md structure | 5 | IND-01〜05 |
+| settings.json | 4 | IND-06〜09 |
+| Hooks | 8 | IND-10〜12, 31, 36〜39 |
+| Skills | 4 | IND-13〜16 |
+| Memory | 7 | IND-17〜19, 30, 32〜34 |
+| MCP | 4 | IND-20〜22, 26 |
+| Workflow | 7 | IND-23〜25, 27〜29, 35 |
+| **Total** | **39** | |
 
 ---
 
@@ -103,7 +101,7 @@ This document is a human-readable projection of the implementation.
 
 ---
 
-## Hooks (3)
+## Hooks (8)
 
 ### IND-10 — hook-missing-error-handling (major)
 
@@ -249,10 +247,39 @@ This document is a human-readable projection of the implementation.
 
 ---
 
-## Future extensions (post-v0.1.0)
+## Hooks (continued) — Wiring indicators (v0.5.0)
+
+### IND-37 — hooks-overview-drift (major)
+
+- **Evidence**: code-wiring-principle.md
+- **Auto-fixable**: No
+- **Detection**: Compares hook filenames listed in `hooks-overview.md` (backtick-quoted) against actual files in `hooks/pre_tool_use/` and `hooks/post_tool_use/`. Reports undocumented files and documented-but-missing entries.
+- **Skips**: `.bak`, `.test.`, hidden files
+- **Remediation**: Update hooks-overview.md to match actual hook files
+
+### IND-38 — hook-rule-reference-missing (minor)
+
+- **Evidence**: code-wiring-principle.md
+- **Auto-fixable**: No
+- **Detection**: Checks each hook script for rule/policy references (`rules/`, `CLAUDE.md`, `CR-N`, `tier1/2`, `pii`, `nightly`, `gates`, etc.). Flags if 3+ hooks have no reference.
+- **Supports**: `hd-ignore: IND-38` directive
+- **Remediation**: Add a comment referencing the enforced rule (e.g. `// Enforces: rules/X.md`)
+
+### IND-39 — wiring-coverage-low (minor)
+
+- **Evidence**: code-wiring-principle.md
+- **Auto-fixable**: No
+- **Detection**: Calculates a combined wiring coverage score: (hooks-overview coverage + rule-reference coverage) / 2. Flags if score < 80%.
+- **Output**: `wiring coverage: XX% (overview: YY%, rule-ref: ZZ%)`
+- **Remediation**: Update hooks-overview.md and add rule references to hook source files
+
+---
+
+## Future extensions
 
 - Runtime MCP tool description inspection (IND-21)
 - postinstall script inspection integration (IND-22)
 - User-defined indicators via config
 - Late-document critical rule detection (secondary Lost-in-the-Middle check)
 - Invariant tracking for Purpose files
+- Rule frontmatter enforcement metadata (rule→hook explicit mapping)
